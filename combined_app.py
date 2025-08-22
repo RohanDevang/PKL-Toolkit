@@ -453,11 +453,11 @@ def process_and_qc(df):
 
 st.set_page_config(
     layout="wide",
-    page_title="PKL Toolkit",
+    page_title="Non-PKL Toolkit",
     page_icon="🤼‍♂️"
 )
 
-st.title("Pro Kabaddi League (PKL) Data App")
+st.title("Kabaddi League Data App (Non-PKL)")
 st.write("Choose a workflow to proceed.")
 
 # ===========================
@@ -589,5 +589,6 @@ elif mode == "📊 Process Cleaned Data with QC":
             mime='text/csv')
         st.write(f"Final column count: {st.session_state.df_processed.shape[1]}")
         st.dataframe(st.session_state.df_processed.head())
+
 
 
