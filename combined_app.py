@@ -25,8 +25,8 @@ def process_csv(df_raw):
     new_col = [
         'Name','Time','Start','Stop','Team','Player','Raid 1','Raid 2','Raid 3',
         'D1','D2','D3','D4','D5','D6','D7','Successful','Empty','Unsuccessful',
-        'Bonus','No Bonus','Z1','Z2','Z3','Z4','Z5','Z6','Z7','Z8','Z9','RT0',
-        'RT1','RT2','RT3','RT4','RT5','RT6','RT7','RT8','RT9','DT0','DT1','DT2',
+        'Bonus','No Bonus','Z1','Z2','Z3','Z4','Z5','Z6','Z7','Z8','Z9','Z10','Z11',
+        'RT0','RT1','RT2','RT3','RT4','RT5','RT6','RT7','RT8','RT9','DT0','DT1','DT2',
         'DT3','DT4','Hand touch','Running hand touch','Toe touch','Running Kick',
         'Reverse Kick','Side Kick','Defender self out (lobby, shirt pull)','Body hold',
         'Ankle hold','Single Thigh hold','Push','Dive','DS0','DS1','DS2','DS3','In Turn',
@@ -620,6 +620,7 @@ elif mode == "📊 Process Cleaned Data with QC":
             mime='text/csv')
         st.write(f"Final column count: {st.session_state.df_processed.shape[1]}")
         st.dataframe(st.session_state.df_processed.head())
+
 
 
 
