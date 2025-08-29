@@ -362,13 +362,12 @@ st.markdown("---")
 # ==============================================================================
 if mode == "📖 Raw Data Cleaner":
     st.header("Workflow 1: Raw Data Cleaner")
-    st.write("Upload a raw, semi-colon (;) delimited CSV file to clean and structure it.")
     
     if 'cleaned_df' not in st.session_state:
         st.session_state.cleaned_df = None
 
     # --- File uploader ---
-    uploaded_file = st.file_uploader("Choose a raw CSV file", type="csv")
+    uploaded_file = st.file_uploader("Choose a Raw CSV file", type="csv")
 
     if uploaded_file is not None:
         # Decode file as text lines
@@ -455,7 +454,6 @@ if mode == "📖 Raw Data Cleaner":
 # ==============================================================================
 if mode == "📊 Process Cleaned Data with QC":
     st.header("Workflow 2: Process Cleaned Data with Quality Checks")
-    st.write("Upload the '-CLEANED.csv' file from Workflow 1 to perform transformations and run validation checks.")
     
     # Initialize session state variables
     if 'df_processed' not in st.session_state:
@@ -538,4 +536,5 @@ if mode == "📊 Process Cleaned Data with QC":
         st.write(f"Final column count: {len(st.session_state.df_processed.columns)}")
         st.write("Processed Data Preview:")
         st.dataframe(st.session_state.df_processed.head())
+
 
