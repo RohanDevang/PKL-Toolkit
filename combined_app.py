@@ -6,21 +6,21 @@ import io
 # ------------------- FUNCTION: RAW DATA CLEANER -----------------------------------
 # ==================================================================================
 def process_csv(df_raw):
+    # Step 1: Find the row where the first column starts with "Name"
     header_row_idx = df_raw[df_raw.iloc[:, 0].astype(str).str.strip().str.startswith("Name")].index
     if header_row_idx.empty:
         raise ValueError("❌ Could not find a header row starting with 'Name'. Please check the CSV format.")
     header_row_idx = header_row_idx[0]
 
-    # Use that row as the header and take the data below it
+    # Step 2: Use that row as the header and take the data below it
     df = df_raw.copy()
     df.columns = df.iloc[header_row_idx].astype(str).str.strip()
     df = df.iloc[header_row_idx + 1:].reset_index(drop=True)
 
-    # Keep only rows where the first column starts with "Raid "
+    # Step 3: Keep only rows where the first column starts with "Raid "
     df = df[df.iloc[:, 0].astype(str).str.strip().str.startswith("Raid ")]
 
-    # Define the expected new column names
-    # Renaming Columns
+    # Step 4: Define the expected new column names (with extra 7 columns at the end)
     new_col = ['Name','Time','Start','Stop','Team','Player','Raid 1','Raid 2','Raid 3',
             'D1','D2','D3','D4','D5','D6','D7','Successful','Empty','Unsuccessful',
             'Bonus','No Bonus','Z1','Z2','Z3','Z4','Z5','Z6','Z7','Z8','Z9','RT0',
@@ -33,14 +33,18 @@ def process_csv(df_raw):
             'RL11','RL12','RL13','RL14','RL15','RL16','RL17','RL18','RL19','RL20','RL21','RL22','RL23',
             'RL24','RL25','RL26','RL27','RL28','RL29','RL30','Raider self out (lobby, time out, empty raid 3)',
             'Running Bonus','Centre Bonus','LCorner','LIN','LCover','Center','RCover','RIN','RCorner','Flying Touch',
-            'Double Thigh Hold','Flying Reach','Clean','Not Clean']
+            'Double Thigh Hold','Flying Reach','Clean','Not Clean',
+            # 👇 extra 7 columns
+            'Yes','No','Z10','Z11','Right','Left','Centre']
 
-    # Validate column count before renaming
+    # Step 5: Validate column count before renaming
     if len(df.columns) != len(new_col):
-        raise ValueError(f"Column count mismatch: The filtered data has {len(df.columns)} columns, but {len(new_col)} were expected.")
-    
+        raise ValueError(f"Column mismatch: got {len(df.columns)}, expected {len(new_col)}")
+
+    # Step 6: Rename columns
     df.columns = new_col
     return df
+
 
 # ==================================================================================
 # ------------------- FUNCTION: PROCESS & QC (FULL) --------------------------------
@@ -187,13 +191,27 @@ def process_and_qc(df):
     for col in cols:
         num = int(col.replace('RL', ''))
         df[col] = df[col].replace(1, num)
-
+    
     # Calculate Actual Raid_Length
     df['Raid_Length'] = 30 - df[cols].astype(int).sum(axis=1)
 
     # Drop intermediate RL columns
     df.drop(columns=cols, inplace=True)
 
+    #----------------- Side of Ride ------------------
+    cols = ['Right', 'Left', 'Centre']
+    for col in cols:
+        df[col] = df[col].replace({1: col, 0: ''})
+    df['Side_of_Ride'] = df[cols].apply(lambda x: ', '.join(filter(None, x)), axis=1)
+    df.drop(columns=cols, inplace=True)
+
+    #----------------- Golden Raid ------------------
+    cols = ['Yes', 'No']
+    for col in cols:
+        df[col] = df[col].replace({1: col, 0: ''})
+    df['Golden_Raid'] = df[cols].apply(lambda x: ', '.join(filter(None, x)), axis=1)
+    df.drop(columns=cols, inplace=True)
+    
     # ---------------- Match Metadata ----------------
     n = len(df)
     df['Tournament_ID'] = tour_id
@@ -280,8 +298,8 @@ def process_and_qc(df):
         # 1. Raid Details & Identification
         "Season_ID", "Tournament_ID", "Match_No",
         "Match_ID", "Event_Number", "Match_Raid_No",
-        "Team_Raid_Number", "Raid_Number",
-        "Half", "Time", "Raid_Length",
+        "Team_Raid_Number", "Raid_Number", "Side_of_Ride",
+        "Golden_Raid", "Half", "Time", "Raid_Length", 
 
         # 2. Raid Outcome & Scoring
         "Outcome", "All_Out", "Bonus", "Type_of_Bonus", "Technical_Point", "Raider_Self_Out",
@@ -589,6 +607,7 @@ elif mode == "📊 Process Cleaned Data with QC":
             mime='text/csv')
         st.write(f"Final column count: {st.session_state.df_processed.shape[1]}")
         st.dataframe(st.session_state.df_processed.head())
+
 
 
 
