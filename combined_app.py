@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import io
-import csv  # for quoting
+import csv
 
 # ==================================================================================
 # ------------------- FUNCTION: RAW DATA CLEANER -----------------------------------
@@ -118,8 +118,8 @@ def process_and_qc(df):
     # ------ Zone_of_Action ------
     cols = ['Z1', 'Z2', 'Z3', 'Z4', 'Z5', 'Z6', 'Z7', 'Z8', 'Z9', 'Z10', 'Z11']
     for col in cols:
-        df[col] = df[col].replace({1: col, 0: ""})
-    df['Zone_of_Action'] = df[cols].sum(axis=1)
+        df[col] = df[col].replace({1: col, 0: ''})
+    df['Zone_of_Action'] = df[cols].apply(lambda row: ', '.join(filter(None, row)), axis=1)
     df.drop(columns=cols, inplace=True)
 
     # ------ Raiding_Team_Points ------
@@ -464,7 +464,7 @@ def process_and_qc(df):
         if not qc_failed_1.empty:
             qc_log.append(f"\n❌ QC Failed [Type 1]: Raid_No {qc_failed_1['Event_Number'].tolist()} → Defensive_Skill present but QoD_Skill missing.")
         if not qc_failed_2.empty:
-            qc_log.append(f"❌ QC Failed [Type 2]: Raid_No {qc_failed_2['Event_Number'].tolist()} → QoD_Skill present but Defensive_Skill missing.")
+            qc_log.append(f"❌ QC Failed [Type 2]: Raid_No {qc_failed_2['Event_Number'].tolist()} → QoD_Skill present but QoD_Skill missing.")
 
     return df, qc_log
 
@@ -549,8 +549,7 @@ if mode == "📖 Raw Data Cleaner":
                     delimiter=";",
                     header=None,
                     dtype=str,
-                    engine="python",
-                    quoting=csv.QUOTE_NONE
+                    engine="python"
                 )
                 with st.spinner('Cleaning data...'):
                     cleaned_df = process_csv(df_raw)
@@ -595,7 +594,7 @@ elif mode == "📊 Process Cleaned Data with QC":
 
             if st.button("Process Data and Run QC Checks", type="primary"):
                 with st.spinner("Processing data and running checks..."):
-                    processed_df, qc_messages = process_and_qc(raw_df)  # Assuming you have this function
+                    processed_df, qc_messages = process_and_qc(raw_df)
                     st.session_state.df_processed = processed_df
                     st.session_state.qc_results = qc_messages
                 st.success("✅ Processing complete!")
@@ -604,7 +603,7 @@ elif mode == "📊 Process Cleaned Data with QC":
             st.error(f"Error reading file: {e}")
 
     # ===========================
-    # QC Results section (untouched)
+    # QC Results section
     # ===========================
     st.markdown("---")
     if st.session_state.qc_results:
@@ -620,12 +619,4 @@ elif mode == "📊 Process Cleaned Data with QC":
             mime='text/csv')
         st.write(f"Final column count: {st.session_state.df_processed.shape[1]}")
         st.dataframe(st.session_state.df_processed.head())
-
-
-
-
-
-
-
-
 
