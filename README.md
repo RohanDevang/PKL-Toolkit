@@ -1,2 +1,2 @@
-# PKL-Toolkit
-Simple UI for Checking the Quality of Kabaddi Data.
+# Non-PKL-Toolkit
+Simple UI for Checking the Data Quality of Kabaddi Data.
