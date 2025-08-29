@@ -254,7 +254,7 @@ def process_and_qc(df):
     qc_log.append("--- QC Checks Initiated ---\n")
 
     # --- QC Checks for Empty Values ---
-    cols = ['Raid_Length', 'Outcome', 'Bonus', 'All_Out', 'Raid_Number', 'Raider_Name', 'Number_of_Defenders']
+    cols = ['Raid_Length', 'Outcome', 'Bonus', 'All_Out', 'Raid_Number', 'Side_of_Raid', 'Golden_Raid', 'Raider_Name', 'Number_of_Defenders']
     mask = df[cols].isna() | df[cols].eq('')
     if mask.any(axis=1).any():
         for idx, row in df[mask.any(axis=1)].iterrows():
@@ -538,3 +538,4 @@ if mode == "📊 Process Cleaned Data with QC":
         st.write(f"Final column count: {len(st.session_state.df_processed.columns)}")
         st.write("Processed Data Preview:")
         st.dataframe(st.session_state.df_processed.head())
+
