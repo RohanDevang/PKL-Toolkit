@@ -538,7 +538,8 @@ if mode == "📖 Raw Data Cleaner":
         if st.button("Process File", type="primary"):
             try:
                 df_raw = pd.read_csv(io.StringIO(uploaded_file.getvalue().decode('utf-8')),
-                                     delimiter=';', header=None, dtype=str)
+                                     delimiter=";", header=None, dtype=str, engine="python")
+
                 with st.spinner('Cleaning data...'):
                     cleaned_df = process_csv(df_raw)  # Assuming you have this function
                     st.session_state.cleaned_df = cleaned_df
@@ -607,6 +608,7 @@ elif mode == "📊 Process Cleaned Data with QC":
             mime='text/csv')
         st.write(f"Final column count: {st.session_state.df_processed.shape[1]}")
         st.dataframe(st.session_state.df_processed.head())
+
 
 
 
