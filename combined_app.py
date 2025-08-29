@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import io
+import csv  # for quoting
 
 # ==================================================================================
 # ------------------- FUNCTION: RAW DATA CLEANER -----------------------------------
@@ -21,21 +22,23 @@ def process_csv(df_raw):
     df = df[df.iloc[:, 0].astype(str).str.strip().str.startswith("Raid ")]
 
     # Step 4: Define the expected new column names (with extra 7 columns at the end)
-    new_col = ['Name','Time','Start','Stop','Team','Player','Raid 1','Raid 2','Raid 3',
-            'D1','D2','D3','D4','D5','D6','D7','Successful','Empty','Unsuccessful',
-            'Bonus','No Bonus','Z1','Z2','Z3','Z4','Z5','Z6','Z7','Z8','Z9','RT0',
-            'RT1','RT2','RT3','RT4','RT5','RT6','RT7','RT8','RT9','DT0','DT1','DT2',
-            'DT3','DT4','Hand touch','Running hand touch','Toe touch','Running Kick',
-            'Reverse Kick','Side Kick','Defender self out (lobby, shirt pull)','Body hold',
-            'Ankle hold','Single Thigh hold','Push','Dive','DS0','DS1','DS2','DS3','In Turn',
-            'Out Turn','Create Gap','Jump','Dubki','Struggle','Release','Block','Chain_def','Follow',
-            'Technical Point','All Out','RL1','RL2','RL3','RL4','RL5','RL6','RL7','RL8','RL9','RL10',
-            'RL11','RL12','RL13','RL14','RL15','RL16','RL17','RL18','RL19','RL20','RL21','RL22','RL23',
-            'RL24','RL25','RL26','RL27','RL28','RL29','RL30','Raider self out (lobby, time out, empty raid 3)',
-            'Running Bonus','Centre Bonus','LCorner','LIN','LCover','Center','RCover','RIN','RCorner','Flying Touch',
-            'Double Thigh Hold','Flying Reach','Clean','Not Clean',
-            # 👇 extra 7 columns
-            'Yes','No','Z10','Z11','Right','Left','Centre']
+    new_col = [
+        'Name','Time','Start','Stop','Team','Player','Raid 1','Raid 2','Raid 3',
+        'D1','D2','D3','D4','D5','D6','D7','Successful','Empty','Unsuccessful',
+        'Bonus','No Bonus','Z1','Z2','Z3','Z4','Z5','Z6','Z7','Z8','Z9','RT0',
+        'RT1','RT2','RT3','RT4','RT5','RT6','RT7','RT8','RT9','DT0','DT1','DT2',
+        'DT3','DT4','Hand touch','Running hand touch','Toe touch','Running Kick',
+        'Reverse Kick','Side Kick','Defender self out (lobby, shirt pull)','Body hold',
+        'Ankle hold','Single Thigh hold','Push','Dive','DS0','DS1','DS2','DS3','In Turn',
+        'Out Turn','Create Gap','Jump','Dubki','Struggle','Release','Block','Chain_def','Follow',
+        'Technical Point','All Out','RL1','RL2','RL3','RL4','RL5','RL6','RL7','RL8','RL9','RL10',
+        'RL11','RL12','RL13','RL14','RL15','RL16','RL17','RL18','RL19','RL20','RL21','RL22','RL23',
+        'RL24','RL25','RL26','RL27','RL28','RL29','RL30','Raider self out (lobby, time out, empty raid 3)',
+        'Running Bonus','Centre Bonus','LCorner','LIN','LCover','Center','RCover','RIN','RCorner','Flying Touch',
+        'Double Thigh Hold','Flying Reach','Clean','Not Clean',
+        # 👇 extra 7 columns
+        'Yes','No','Z10','Z11','Right','Left','Centre'
+    ]
 
     # Step 5: Validate column count before renaming
     if len(df.columns) != len(new_col):
@@ -530,18 +533,27 @@ st.markdown("---")
 # ==================================================================================
 if mode == "📖 Raw Data Cleaner":
     st.header("Raw Data Cleaner")
-    st.write("Upload a raw CSV file (semicolon-separated), auto-detect headers, and clean it for further processing.")
+    st.write("Upload a raw CSV file (**semicolon-separated**), auto-detect headers, and clean it for further processing.")
 
     uploaded_file = st.file_uploader("Choose a raw CSV file", type="csv")
 
     if uploaded_file:
+        # Preview raw file (first 5 lines)
+        raw_text = uploaded_file.getvalue().decode("utf-8")
+        st.text_area("Raw File Preview (first 5 lines)", "\n".join(raw_text.splitlines()[:5]), height=150)
+
         if st.button("Process File", type="primary"):
             try:
-                df_raw = pd.read_csv(io.StringIO(uploaded_file.getvalue().decode('utf-8')),
-                                     delimiter=";", header=None, dtype=str, engine="python")
-
+                df_raw = pd.read_csv(
+                    io.StringIO(raw_text),
+                    delimiter=";",
+                    header=None,
+                    dtype=str,
+                    engine="python",
+                    quoting=csv.QUOTE_NONE
+                )
                 with st.spinner('Cleaning data...'):
-                    cleaned_df = process_csv(df_raw)  # Assuming you have this function
+                    cleaned_df = process_csv(df_raw)
                     st.session_state.cleaned_df = cleaned_df
                 st.success("✅ Transformation complete!")
             except Exception as e:
@@ -608,6 +620,7 @@ elif mode == "📊 Process Cleaned Data with QC":
             mime='text/csv')
         st.write(f"Final column count: {st.session_state.df_processed.shape[1]}")
         st.dataframe(st.session_state.df_processed.head())
+
 
 
 
