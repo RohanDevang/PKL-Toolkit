@@ -113,7 +113,7 @@ def process_and_qc(df):
     df = pd.concat([df_bonus, df], axis=1)
 
     # ------ Zone_of_Action ------
-    cols = ['Z1', 'Z2', 'Z3', 'Z4', 'Z5', 'Z6', 'Z7', 'Z8', 'Z9']
+    cols = ['Z1', 'Z2', 'Z3', 'Z4', 'Z5', 'Z6', 'Z7', 'Z8', 'Z9', 'Z10', 'Z11']
     for col in cols:
         df[col] = df[col].replace({1: col, 0: ""})
     df['Zone_of_Action'] = df[cols].sum(axis=1)
@@ -607,6 +607,7 @@ elif mode == "📊 Process Cleaned Data with QC":
             mime='text/csv')
         st.write(f"Final column count: {st.session_state.df_processed.shape[1]}")
         st.dataframe(st.session_state.df_processed.head())
+
 
 
 
