@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import io
 import sys
 
@@ -169,21 +170,43 @@ if uploaded_file:
             df.drop(['Successful', 'Unsuccessful', 'Empty'], axis=1, inplace=True)
 
             # ------ Bonus ------
-            df_bonus = df[['Bonus', 'No Bonus', 'Centre Bonus', 'Running Bonus']].copy()
-            df_bonus['Bonus'] = df_bonus[['Bonus', 'Centre Bonus', 'Running Bonus']].eq(1).any(axis=1).replace({True: 'Yes', False: ''})
-            df_bonus['No Bonus'] = df_bonus['No Bonus'].replace({1: "No", 0: ''})
-            df_bonus['Bonus'] = df_bonus['Bonus'] + df_bonus['No Bonus']
-            df_bonus.loc[(df[['Bonus', 'No Bonus', 'Centre Bonus', 'Running Bonus']] == 0).all(axis=1), 'Bonus'] = 'No'
-            df_bonus['Bonus'] = df_bonus['Bonus'].str.strip()
-            df_bonus.drop(columns=['No Bonus', 'Centre Bonus', 'Running Bonus'], inplace=True)
+    
+            flag_cols = ['Bonus', 'Centre Bonus', 'Running Bonus', 'No Bonus']
 
+            # ensure columns exist, fill missing with 0
+            for c in flag_cols:
+                if c not in df.columns:
+                    df[c] = 0
+
+            # make sure flags are numeric (0/1) and no NaNs
+            df[flag_cols] = df[flag_cols].fillna(0).astype(int)
+
+            # determine whether any bonus-type flags are set
+            has_any_bonus = df[['Bonus', 'Centre Bonus', 'Running Bonus']].eq(1).any(axis=1)
+
+            # Create a non-conflicting label column first (don't overwrite flag columns yet)
+            df['Bonus_label'] = np.where(df['No Bonus'] == 1, 'No',
+                                        np.where(has_any_bonus, 'Yes', 'No'))
+
+            # Build Type_of_Bonus as comma-separated list of active types (vectorized-ish)
+            type_cols = ['Bonus', 'Centre Bonus', 'Running Bonus']
+
+            def build_types(row):
+                # row is a Series with the type_cols
+                chosen = [col for col in type_cols if row[col] == 1]
+                return ', '.join(chosen) if chosen else 'No'
+            
             # ------ Type_of_Bonus ------
-            cols = ['Bonus', 'Centre Bonus', 'Running Bonus']
-            for col in cols:
-                df[col] = df[col].replace({1: col, 0: ''})
-            df['Type_of_Bonus'] = df['Bonus'] + df['Centre Bonus'] + df['Running Bonus']
-            df.drop(columns=['Bonus', 'No Bonus', 'Centre Bonus', 'Running Bonus'], inplace=True)
-            df = pd.concat([df_bonus, df], axis=1)
+
+            df['Type_of_Bonus'] = df[type_cols].apply(build_types, axis=1)
+
+            # If No Bonus flag is set, override the type to 'No' (explicit precedence)
+            df.loc[df['No Bonus'] == 1, 'Type_of_Bonus'] = 'No'
+
+            # If you want the final column name to be "Bonus" (Yes/No), rename and drop flags:
+            df = df.drop(columns=flag_cols)        # drop original numeric flags
+            df = df.rename(columns={'Bonus_label': 'Bonus'})
+
 
             # ---------------- Zone_of_Action ----------------
             cols = ['Z1', 'Z2', 'Z3', 'Z4', 'Z5', 'Z6', 'Z7', 'Z8', 'Z9', 'Z10', 'Z11']
@@ -421,6 +444,7 @@ if uploaded_file:
             else:
                 print("QC 1: ✅ All rows are completely filled. Thank you!\n")
 
+            # QC 2: Outcome Empty consistency
             cols_qc1 = ['Defender_1_Name', 'Defender_2_Name', 'Defender_3_Name', 'Defender_4_Name', 
                         'Defender_5_Name', 'Defender_6_Name', 'Defender_7_Name', 
                         'Attacking_Skill', 'Defensive_Skill', 'Counter_Action_Skill', 'Zone_of_Action']
@@ -465,9 +489,7 @@ if uploaded_file:
                         issue_text = ', '.join(issues)
                         print(f"❌ {row['Event_Number']}: → When Outcome is 'Empty', there is an invalid condition: {issue_text}.\n")
             else:
-                print("QC 2: ✅ All rows meet QC 1 conditions for Outcome = 'Empty'.\n")
-
-
+                print("QC 2: ✅ All rows meet conditions for Outcome = 'Empty'.\n")
 
             # QC 3: Successful / Unsuccessful with Bonus = No & Raider_Self_Out = 0
             cols_qc2 = ['Defender_1_Name', 'Number_of_Defenders', 'Zone_of_Action']
@@ -685,8 +707,9 @@ if uploaded_file:
                     print(f"\n❌ {event}: Defender(s) present but 'Defender_Position' is empty.\n")
 
             # --- QC 16: Defensive_Skill & QoD_Skill Alignment ---
-            qc_failed_1 = df[(df["Defensive_Skill"].fillna("").str.strip() != "") & (df["QoD_Skill"].fillna("").str.strip() == "")]
-            qc_failed_2 = df[(df["QoD_Skill"].fillna("").str.strip() != "") & (df["Defensive_Skill"].fillna("").str.strip() == "")]
+            qc_failed_1 = df[(df["Defensive_Skill"] != "") & (df["QoD_Skill"] == "")]
+            qc_failed_2 = df[(df["QoD_Skill"] != "") & (df["Defensive_Skill"] == "")]
+
             if qc_failed_1.empty and qc_failed_2.empty:
                 print("QC 16: ✅ Defensive_Skill and QoD_Skill are aligned correctly.")
             else:
@@ -694,6 +717,7 @@ if uploaded_file:
                     print(f"❌ [Type 1]: {qc_failed_1['Event_Number'].tolist()} → Defensive_Skill present but QoD_Skill missing.")
                 if not qc_failed_2.empty:
                     print(f"❌ [Type 2]: {qc_failed_2['Event_Number'].tolist()} → QoD_Skill present but Defensive_Skill missing.")
+
 
 
             # ============================================================================
@@ -757,10 +781,3 @@ if uploaded_file:
         except Exception as e:
             sys.stdout = sys.__stdout__
             st.error(f"❌ An error occurred: {e}")
-
-
-
-
-
-
-
