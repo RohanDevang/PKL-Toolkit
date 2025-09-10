@@ -421,12 +421,9 @@ if uploaded_file:
             else:
                 print("QC 1: ✅ All rows are completely filled. Thank you!\n")
 
-             # QC 2: Outcome Empty consistency
-           cols_qc1 = [
-                'Defender_1_Name', 'Defender_2_Name', 'Defender_3_Name', 'Defender_4_Name', 
-                'Defender_5_Name', 'Defender_6_Name', 'Defender_7_Name', 
-                'Attacking_Skill', 'Defensive_Skill', 'Counter_Action_Skill', 'Zone_of_Action'
-            ]
+            cols_qc1 = ['Defender_1_Name', 'Defender_2_Name', 'Defender_3_Name', 'Defender_4_Name', 
+                        'Defender_5_Name', 'Defender_6_Name', 'Defender_7_Name', 
+                        'Attacking_Skill', 'Defensive_Skill', 'Counter_Action_Skill', 'Zone_of_Action']
             
             # Clean data: treat empty strings, None, and whitespace as NaN
             df[cols_qc1] = df[cols_qc1].applymap(lambda x: pd.NA if pd.isna(x) or str(x).strip() == '' else x)
@@ -469,6 +466,7 @@ if uploaded_file:
                         print(f"❌ {row['Event_Number']}: → When Outcome is 'Empty', there is an invalid condition: {issue_text}.\n")
             else:
                 print("QC 2: ✅ All rows meet QC 1 conditions for Outcome = 'Empty'.\n")
+
 
 
             # QC 3: Successful / Unsuccessful with Bonus = No & Raider_Self_Out = 0
