@@ -423,10 +423,17 @@ if uploaded_file:
 
              # QC 2: Outcome Empty consistency
             cols_qc1 = [
-                'Defender_1_Name', 'Defender_2_Name', 'Defender_3_Name', 'Defender_4_Name', 'Defender_5_Name', 'Defender_6_Name',
-                'Defender_7_Name', 'Attacking_Skill', 'Defensive_Skill', 'Counter_Action_Skill', 'Zone_of_Action'
+                'Defender_1_Name', 'Defender_2_Name', 'Defender_3_Name', 'Defender_4_Name', 
+                'Defender_5_Name', 'Defender_6_Name', 'Defender_7_Name', 
+                'Attacking_Skill', 'Defensive_Skill', 'Counter_Action_Skill', 'Zone_of_Action'
             ]
-            cols_empty_qc1 = df[cols_qc1].replace('', pd.NA).isna().all(axis=1)
+            
+            # Clean data: replace empty strings, whitespace-only strings, and None with NaN
+            df[cols_qc1] = df[cols_qc1].applymap(lambda x: pd.NA if pd.isna(x) or str(x).strip() == '' else x)
+            
+            # Identify rows where all QC1 columns are empty
+            cols_empty_qc1 = df[cols_qc1].isna().all(axis=1)
+            
             mask_qc1_invalid = (
                 (df['Outcome'] == 'Empty') & ~(
                     cols_empty_qc1 &
@@ -436,12 +443,14 @@ if uploaded_file:
                     (df['Bonus'] == 'No')
                 )
             )
+            
+            # Display errors
             if mask_qc1_invalid.any():
                 for idx, row in df[mask_qc1_invalid].iterrows():
-                    non_empty_cols = row[cols_qc1].replace('', pd.NA).dropna().index.tolist()
+                    non_empty_cols = row[cols_qc1].dropna().index.tolist()
                     print(f"❌ {row['Event_Number']}: → When Outcome is 'Empty', these columns should be empty: {', '.join(non_empty_cols)}.\n")
             else:
-                print("QC 2: ✅ All rows meet QC 1 conditions for Outcome = 'Empty'.\n")
+                print("QC 2: ✅ All rows meet conditions for Outcome = 'Empty'.\n")
 
             # QC 3: Successful / Unsuccessful with Bonus = No & Raider_Self_Out = 0
             cols_qc2 = ['Defender_1_Name', 'Number_of_Defenders', 'Zone_of_Action']
@@ -731,6 +740,7 @@ if uploaded_file:
         except Exception as e:
             sys.stdout = sys.__stdout__
             st.error(f"❌ An error occurred: {e}")
+
 
 
 
