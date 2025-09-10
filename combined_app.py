@@ -111,8 +111,8 @@ if uploaded_file:
                 'RL28','RL29','RL30','Raider self out','Running Bonus','Centre Bonus','LCorner','LIN',
                 'LCover','Center','RCover','RIN','RCorner','Flying Touch','Double Thigh Hold',
                 'Flying Reach','Clean','Not Clean',
-                # Extra 7 columns
-                'Yes','No','Z10','Z11','Right','Left','Centre'
+                # Extra 4 columns
+                'Yes','No','Z10','Z11'
             ]
 
             if len(df.columns) == len(new_col_names):
@@ -740,6 +740,7 @@ if uploaded_file:
         except Exception as e:
             sys.stdout = sys.__stdout__
             st.error(f"❌ An error occurred: {e}")
+
 
 
 
