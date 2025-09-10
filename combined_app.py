@@ -423,25 +423,32 @@ if uploaded_file:
 
             # QC 2: Outcome Empty consistency
             cols_qc1 = [
-                'Defender_1_Name', 'Defender_2_Name', 'Defender_3_Name', 'Defender_4_Name', 'Defender_5_Name', 'Defender_6_Name',
-                'Defender_7_Name', 'Attacking_Skill', 'Defensive_Skill', 'Counter_Action_Skill', 'Zone_of_Action'
+                'Defender_1_Name', 'Defender_2_Name', 'Defender_3_Name', 'Defender_4_Name',
+                'Defender_5_Name', 'Defender_6_Name', 'Defender_7_Name',
+                'Attacking_Skill', 'Defensive_Skill', 'Counter_Action_Skill', 'Zone_of_Action'
             ]
-            cols_empty_qc1 = df[cols_qc1].replace('', pd.NA).isna().all(axis=1)
+            
+            # Replace empty strings or whitespace with NA
+            df_clean = df[cols_qc1].replace(r'^\s*$', pd.NA, regex=True)
+            cols_empty_qc1 = df_clean.isna().all(axis=1)
+            
             mask_qc1_invalid = (
                 (df['Outcome'] == 'Empty') & ~(
                     cols_empty_qc1 &
-                    (df['All_Out'] == 0) &
-                    (df['Raiding_Team_Points'] == 0) &
-                    (df['Defending_Team_Points'] == 0) &
-                    (df['Bonus'] == 'No')
+                    (df['All_Out'].fillna(0) == 0) &
+                    (df['Raiding_Team_Points'].fillna(0) == 0) &
+                    (df['Defending_Team_Points'].fillna(0) == 0) &
+                    (df['Bonus'].fillna('No') == 'No')
                 )
             )
+            
             if mask_qc1_invalid.any():
-                for idx, row in df[mask_qc1_invalid].iterrows():
-                    non_empty_cols = row[cols_qc1].replace('', pd.NA).dropna().index.tolist()
+                for idx, row in df.loc[mask_qc1_invalid].iterrows():
+                    non_empty_cols = row[cols_qc1].replace(r'^\s*$', pd.NA, regex=True).dropna().index.tolist()
                     print(f"❌ {row['Event_Number']}: → When Outcome is 'Empty', these columns should be empty: {', '.join(non_empty_cols)}.\n")
             else:
                 print("QC 2: ✅ All rows meet QC 1 conditions for Outcome = 'Empty'.\n")
+
 
             # QC 3: Successful / Unsuccessful with Bonus = No & Raider_Self_Out = 0
             cols_qc2 = ['Defender_1_Name', 'Number_of_Defenders', 'Zone_of_Action']
@@ -653,7 +660,7 @@ if uploaded_file:
             # --- QC 15: Defender without Position ---
             qc_failed = df[(df["Defender_1_Name"].notna()) & (df["Defender_Position"].isna() | (df["Defender_Position"] == ""))]
             if qc_failed.empty:
-                print("\nQC 15: ✅ All defenders have positions.")
+                print("\nQC 15: ✅ All defenders have positions.\n")
             else:
                 for event in qc_failed['Event_Number']:
                     print(f"\n❌ {event}: Defender(s) present but 'Defender_Position' is empty.\n")
@@ -731,3 +738,4 @@ if uploaded_file:
         except Exception as e:
             sys.stdout = sys.__stdout__
             st.error(f"❌ An error occurred: {e}")
+
