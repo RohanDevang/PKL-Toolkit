@@ -929,6 +929,28 @@ if uploaded_file:
                     print(f"❌ [Type 2]: {qc_16_2['Event_Number'].tolist()} → QoD_Skill present but Defensive_Skill missing.\n")
 
 
+            # --- QC 17: Bonus & Type of Bonus ---
+
+            # QC Conditions
+            condition_1 = (df['Bonus'] == 'Yes') & (df['Type_of_Bonus'].isnull() | (df['Type_of_Bonus'].str.strip() == ''))
+            condition_2 = (df['Bonus'] == 'No') & (~df['Type_of_Bonus'].isnull() & (df['Type_of_Bonus'].str.strip() != ''))
+        
+            # Combine failed rows
+            failed_rows = df[condition_1 | condition_2]
+        
+            # If-Else with detailed print statements
+            if failed_rows.empty:
+                print("✅ QC Passed: All rows are correct!\n")
+            else:
+                print("❌ QC Failed: Issues found")
+                for _, row in failed_rows.iterrows():
+                    if row['Bonus'] == 'Yes' and (pd.isnull(row['Type_of_Bonus']) or str(row['Type_of_Bonus']).strip() == ''):
+                        print(f"❌ {row['Event_Number']}: Bonus is 'Yes' but Type_of_Bonus is missing or empty.\n")
+                        
+                    elif row['Bonus'] == 'No' and not (pd.isnull(row['Type_of_Bonus']) or str(row['Type_of_Bonus']).strip() == ''):
+                        print(f"❌ {row['Event_Number']}: Bonus is 'No' but Type_of_Bonus should be null.\n")
+
+            
 # =========================================================================
 
             # Example: saving final processed dataframe
@@ -990,4 +1012,5 @@ if uploaded_file:
             sys.stdout = sys.__stdout__
             st.error(f"❌ An error occurred: {e}")
     
+
 
