@@ -931,24 +931,31 @@ if uploaded_file:
 
             # --- QC 17: Bonus & Type of Bonus ---
 
+            # Normalize data
+            df['Bonus'] = df['Bonus'].astype(str).str.strip().str.title()
+            df['Type_of_Bonus'] = df['Type_of_Bonus'].astype(str).str.strip()
+            
             # QC Conditions
-            condition_1 = (df['Bonus'] == 'Yes') & (df['Type_of_Bonus'].isnull() | (df['Type_of_Bonus'].str.strip() == ''))
-            condition_2 = (df['Bonus'] == 'No') & (~df['Type_of_Bonus'].isnull() & (df['Type_of_Bonus'].str.strip() != ''))
-        
+            condition_1 = (df['Bonus'] == 'Yes') & ((df['Type_of_Bonus'] == '') | (df['Type_of_Bonus'].isnull()))
+            condition_2 = (df['Bonus'] == 'No') & ((df['Type_of_Bonus'] != '') & (~df['Type_of_Bonus'].isnull()))
+            
             # Combine failed rows
             failed_rows = df[condition_1 | condition_2]
-        
+            
+            # Debug count
+            print("Debug: Failed rows count =", len(failed_rows))
+            
             # If-Else with detailed print statements
             if failed_rows.empty:
                 print("QC 17: ✅ All rows are correct!\n")
             else:
-                print("❌ QC Failed: Issues found")
+                print("❌ QC 17 Failed: Issues found")
                 for _, row in failed_rows.iterrows():
-                    if row['Bonus'] == 'Yes' and (pd.isnull(row['Type_of_Bonus']) or str(row['Type_of_Bonus']).strip() == ''):
+                    if row['Bonus'] == 'Yes' and (row['Type_of_Bonus'] == '' or pd.isnull(row['Type_of_Bonus'])):
                         print(f"❌ {row['Event_Number']}: Bonus is 'Yes' but Type_of_Bonus is missing or empty.\n")
-                        
-                    elif row['Bonus'] == 'No' and not (pd.isnull(row['Type_of_Bonus']) or str(row['Type_of_Bonus']).strip() == ''):
+                    elif row['Bonus'] == 'No' and (row['Type_of_Bonus'] != '' and not pd.isnull(row['Type_of_Bonus'])):
                         print(f"❌ {row['Event_Number']}: Bonus is 'No' but Type_of_Bonus should be null.\n")
+
 
             
 # =========================================================================
@@ -1012,6 +1019,7 @@ if uploaded_file:
             sys.stdout = sys.__stdout__
             st.error(f"❌ An error occurred: {e}")
     
+
 
 
 
