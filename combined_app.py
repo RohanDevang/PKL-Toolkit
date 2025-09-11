@@ -578,10 +578,13 @@ if uploaded_file:
                 df.loc[mask, defender_cols].notna().sum(axis=1)
                 - df.loc[mask, 'Number_of_Defenders_Self_Out']
                 )
-
-            # Raiding_All_Out_Points
+            
+            # Convert 'All_Out' column to numeric directly
+            df['All_Out'] = pd.to_numeric(df['All_Out'], errors='coerce')
+            
+            # Update Raiding_All_Out_Points
             df["Raiding_All_Out_Points"] = (((df['Outcome'] == 'Successful') & (df["All_Out"] == 1)).astype(int) * 2)
-
+            
             # Raiding_Self_Out_Points
             df['Raiding_Self_Out_Points'] = df['Number_of_Defenders_Self_Out']
 
@@ -1017,6 +1020,7 @@ if uploaded_file:
             sys.stdout = sys.__stdout__
             st.error(f"❌ An error occurred: {e}")
     
+
 
 
 
