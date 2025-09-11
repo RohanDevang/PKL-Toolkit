@@ -921,7 +921,7 @@ if uploaded_file:
 
             # Final check
             if qc_16_1.empty and qc_16_2.empty:
-                print("QC 16: ✅ Defensive_Skill and QoD_Skill are aligned correctly.")
+                print("QC 16: ✅ Defensive_Skill and QoD_Skill are aligned correctly.\n")
             else:
                 if not qc_16_1.empty:
                     print(f"❌ [Type 1]: {qc_16_1['Event_Number'].tolist()} → Defensive_Skill present but QoD_Skill missing.\n")
@@ -940,7 +940,7 @@ if uploaded_file:
         
             # If-Else with detailed print statements
             if failed_rows.empty:
-                print("✅ QC Passed: All rows are correct!\n")
+                print("QC 17: ✅ All rows are correct!\n")
             else:
                 print("❌ QC Failed: Issues found")
                 for _, row in failed_rows.iterrows():
@@ -1012,5 +1012,6 @@ if uploaded_file:
             sys.stdout = sys.__stdout__
             st.error(f"❌ An error occurred: {e}")
     
+
 
 
