@@ -769,20 +769,27 @@ if uploaded_file:
 
 
             # QC 9: Empty Raid Consistency
-
             errors_found = False
+
             for idx, row in df.iterrows():
                 if row['Raid_Number'] == 2 and row['Outcome'] == 'Empty':
                     if idx >= 2:
                         prev_row = df.loc[idx - 2]
                         if prev_row['Raid_Number'] == 1 and prev_row['Outcome'] != 'Empty':
-                            print(f"❌ {row['Event_Number']}: Previous raid not Empty\n")
+                            print(
+                                f"❌ Event {row['Event_Number']} is Empty, but Raid No: "
+                                f"{prev_row['Match_Raid_Number'] - 2} has Outcome '{prev_row['Outcome']}' "
+                                f"which is not Empty. Please check and update.\n"
+                            )
                             errors_found = True
+            
             if not errors_found:
                 print("QC 9: ✅ All rows are correct.\n")
 
+
             # QC 10: Raid_Length should be > 2
             errors_found = False
+            
             for idx, row in df.iterrows():
                 if row['Raid_Length'] <= 2:
                     print(f"⚠️ {row['Event_Number']}: Raid_Length is {row['Raid_Length']}\n")
@@ -1020,6 +1027,7 @@ if uploaded_file:
             sys.stdout = sys.__stdout__
             st.error(f"❌ An error occurred: {e}")
     
+
 
 
 
