@@ -1006,7 +1006,7 @@ if uploaded_file:
                 st.download_button(
                     label="Download Processed CSV",
                     data=f,
-                    file_name="processed_output.csv",
+                    file_name=f"tagged_{str(match_id)}.csv",
                     mime="text/csv",
                     use_container_width=True
                 )
@@ -1015,6 +1015,7 @@ if uploaded_file:
             sys.stdout = sys.__stdout__
             st.error(f"❌ An error occurred: {e}")
     
+
 
 
 
