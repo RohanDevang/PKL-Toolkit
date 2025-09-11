@@ -1,8 +1,8 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 import io
 import sys
+
 
 # ---------------------------
 # Streamlit UI
@@ -11,9 +11,13 @@ st.set_page_config(layout="wide", page_title="Kabaddi QC Tool")
 
 # st.title("Kabaddi Data Processing & QC Tool - Old Dashboard")
 st.markdown(
-    '<h1>Kabaddi Data Processing & QC tool - <span style="color:yellow;">New DashBoard</span></h1>',
-    unsafe_allow_html=True
-)
+    '<h1>Kabaddi Data Processing & QC tool - <span style="color:yellow;">New Dashboard</span></h1>',
+    unsafe_allow_html=True)
+
+###################
+match_id = st.text_input("Enter Match ID", value = "6464")
+match_id = int(match_id)
+###################
 
 st.markdown("")
 
@@ -67,11 +71,6 @@ if uploaded_file:
             raw_file_name = temp_file_path
             output_file_name = "processed_output.csv"
 
-            # --- Match Metadata ---
-            tour_id = "T001"
-            seas_id = "S12"
-            match_no = "02"
-            match_id = 6465
 
             # Define raw_df before using it
             raw_df = st.session_state.raw_df.copy()
@@ -97,24 +96,21 @@ if uploaded_file:
                 print("❌ No rows found strictly starting with 'Raid '.")
                 sys.exit()
 
-            # Step 5: Rename Columns
+             # Step 5: Rename Columns
             new_col_names = [
                 'Name','Time','Start','Stop','Team','Player','Raid 1','Raid 2','Raid 3',
                 'D1','D2','D3','D4','D5','D6','D7','Successful','Empty','Unsuccessful',
                 'Bonus','No Bonus','Z1','Z2','Z3','Z4','Z5','Z6','Z7','Z8','Z9','RT0',
                 'RT1','RT2','RT3','RT4','RT5','RT6','RT7','RT8','RT9','DT0','DT1','DT2',
                 'DT3','DT4','Hand touch','Running hand touch','Toe touch','Running Kick',
-                'Reverse Kick','Side Kick','Def self out','Body hold','Ankle hold','Single Thigh hold',
-                'Push','Dive','DS0','DS1','DS2','DS3','In Turn','Out Turn','Create Gap','Jump','Dubki',
-                'Struggle','Release','Block','Chain_def','Follow','Technical Point','All Out',
-                'RL1','RL2','RL3','RL4','RL5','RL6','RL7','RL8','RL9','RL10','RL11','RL12','RL13','RL14',
-                'RL15','RL16','RL17','RL18','RL19','RL20','RL21','RL22','RL23','RL24','RL25','RL26','RL27',
-                'RL28','RL29','RL30','Raider self out','Running Bonus','Centre Bonus','LCorner','LIN',
-                'LCover','Center','RCover','RIN','RCorner','Flying Touch','Double Thigh Hold',
-                'Flying Reach','Clean','Not Clean',
+                'Reverse Kick','Side Kick','Defender self out','Body hold',
+                'Ankle hold','Single Thigh hold','Push','Dive','DS0','DS1','DS2','DS3','In Turn',
+                'Out Turn','Create Gap','Jump','Dubki','Struggle','Release','Block','Chain_def','Follow',
+                'Technical Point','All Out', *(f'RL{i}' for i in range(1, 31)),
+                'Raider self out','Running Bonus','Centre Bonus','LCorner','LIN','LCover','Center',
+                'RCover','RIN','RCorner','Flying Touch','Double Thigh Hold','Flying Reach','Clean','Not Clean',
                 # Extra 4 columns
-                'Yes','No','Z10','Z11'
-            ]
+                'Yes','No','Z10','Z11']
 
             if len(df.columns) == len(new_col_names):
                 df.columns = new_col_names
@@ -126,182 +122,283 @@ if uploaded_file:
             # START: Part 2 - Transformation and QCs
             # This part now uses the 'df' from above instead of reading a new file.
             # =========================================================================
+            
+            ini_match = 6464
 
-            # --- Helper function to safely convert columns to numeric ---
-            def safe_to_numeric(df_in, cols):
-                for col in cols:
-                    if col in df_in.columns:
-                        df_in[col] = pd.to_numeric(df_in[col], errors='coerce')
-                return df_in
+            # ------ Define IDs ------
+            tour_id = "T001"
+            seas_id = "S12"
+            match_no = match_id - ini_match + 1
+            match_id = "M"+str(match_id)
 
             # ---------------- Drop unused columns ----------------
-            df.drop(['Time', 'Team'], axis=1, inplace=True)
+            df.drop(['Time', 'Team'], axis=1, inplace=True, errors='ignore')
 
-            # ---------------- Raid_Number ----------------
-            df = safe_to_numeric(df, ['Raid 1', 'Raid 2', 'Raid 3']) # ERROR FIX
-            df['Raid 2'] = df['Raid 2'].replace(1, 2)
-            df['Raid 3'] = df['Raid 3'].replace(1, 3)
-            df['Raid_1'] = (
-                df['Raid 1'].fillna(0).astype(int) +
-                df['Raid 2'].fillna(0).astype(int) +
-                df['Raid 3'].fillna(0).astype(int)
-            )
-            df = df.drop(['Raid 1', 'Raid 2', 'Raid 3'], axis=1).rename(columns={ # Dropped Raid 1 here
-                'Raid_1': 'Raid_Number',
+
+            # -------- Raid_Number --------
+    
+            for c in ['Raid 1', 'Raid 2', 'Raid 3']:
+                df[c] = pd.to_numeric(df[c].astype(str).str.strip().replace('', '0'), errors='coerce').fillna(0).astype(int)
+
+            df.loc[df['Raid 2'] == 1, 'Raid 2'] = 2
+            df.loc[df['Raid 3'] == 1, 'Raid 3'] = 3
+
+            df['Raid_Number'] = df['Raid 1'] + df['Raid 2'] + df['Raid 3']
+            df.drop(['Raid 1', 'Raid 2', 'Raid 3'], axis=1, inplace=True)
+
+
+            # ------ Rename key columns ------
+        
+            df.rename(columns={
                 'Name': 'Event_Number',
                 'Technical Point': 'Technical_Point',
                 'All Out': 'All_Out'
-            })
+            }, inplace=True)
 
-            # ---------------- Number_of_Defenders ----------------
+        
+            # ------ Number_of_Defenders ------
+
             defender_cols = ['D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7']
-            df = safe_to_numeric(df, defender_cols) # ERROR FIX
             for idx, col in enumerate(defender_cols, 1):
-                df[col] = df[col].replace(1, idx)
-            df['Number_of_Defenders'] = df[defender_cols].fillna(0).sum(axis=1).astype(int)
+                df[col] = pd.to_numeric(df[col].astype(str).str.strip().replace('', '0'),
+                                        errors='coerce').fillna(0).astype(int)
+                df[col] = df[col].apply(lambda x: idx if x == 1 else 0)
+            df['Number_of_Defenders'] = df[defender_cols].sum(axis=1).astype(int)
             df.drop(columns=defender_cols, inplace=True)
 
-            # ---------------- Outcome ----------------
-            # Using string keys {'1', '0'} because data is read as string initially
-            df['Successful'] = df['Successful'].replace({'1': 'Successful', '0': ''})
-            df['Empty'] = df['Empty'].replace({'1': 'Empty', '0': ''})
-            df['Unsuccessful'] = df['Unsuccessful'].replace({'1': 'Unsuccessful', '0': ''})
-            df['Outcome'] = df['Successful'].fillna('') + df['Empty'].fillna('') + df['Unsuccessful'].fillna('')
-            df.drop(['Successful', 'Unsuccessful', 'Empty'], axis=1, inplace=True)
+            # ------ Outcome ------
+
+            # 1. Ensure numeric conversion
+            for col in ['Successful', 'Empty', 'Unsuccessful']:
+                df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0).astype(int)
+
+            # 2. Map 1 → label, 0 → empty string
+            df['Successful'] = df['Successful'].map({1: 'Successful', 0: ''})
+            df['Empty'] = df['Empty'].map({1: 'Empty', 0: ''})
+            df['Unsuccessful'] = df['Unsuccessful'].map({1: 'Unsuccessful', 0: ''})
+
+            # 3. Safely join non-empty labels
+            df['Outcome'] = df[['Successful', 'Empty', 'Unsuccessful']].apply(
+                lambda row: ' '.join(val for val in row if val != ''), axis=1)
+
+            df.drop(['Successful', 'Empty', 'Unsuccessful'], axis=1, inplace=True)
 
             # ------ Bonus ------
-    
-            flag_cols = ['Bonus', 'Centre Bonus', 'Running Bonus', 'No Bonus']
 
-            # ensure columns exist, fill missing with 0
-            for c in flag_cols:
-                if c not in df.columns:
-                    df[c] = 0
+            df_bonus = df[['Bonus', 'No Bonus', 'Centre Bonus', 'Running Bonus']].copy()
 
-            # make sure flags are numeric (0/1) and no NaNs
-            df[flag_cols] = df[flag_cols].fillna(0).astype(int)
+            # Convert to integers to avoid string concatenation issues
+            for col in df_bonus.columns:
+                df_bonus[col] = pd.to_numeric(df_bonus[col], errors='coerce').fillna(0).astype(int)
 
-            # determine whether any bonus-type flags are set
-            has_any_bonus = df[['Bonus', 'Centre Bonus', 'Running Bonus']].eq(1).any(axis=1)
+            # Create unified "Bonus" indicator
+            df_bonus['Bonus'] = df_bonus[['Bonus', 'Centre Bonus', 'Running Bonus']].max(axis=1)
+            df_bonus['Bonus'] = df_bonus['Bonus'].map({1: 'Yes', 0: ''})
 
-            # Create a non-conflicting label column first (don't overwrite flag columns yet)
-            df['Bonus_label'] = np.where(df['No Bonus'] == 1, 'No',
-                                        np.where(has_any_bonus, 'Yes', 'No'))
+            df_bonus['No Bonus'] = df_bonus['No Bonus'].map({1: 'No', 0: ''})
 
-            # Build Type_of_Bonus as comma-separated list of active types (vectorized-ish)
-            type_cols = ['Bonus', 'Centre Bonus', 'Running Bonus']
+            # Combine cleanly
+            df_bonus['Bonus'] = (df_bonus['Bonus'] + ' ' + df_bonus['No Bonus']).str.strip()
 
-            def build_types(row):
-                # row is a Series with the type_cols
-                chosen = [col for col in type_cols if row[col] == 1]
-                return ', '.join(chosen) if chosen else 'No'
-            
+            # If all are 0 → set Bonus to "No"
+            df_bonus.loc[(df_bonus[['Bonus', 'No Bonus']] == '').all(axis=1),'Bonus'] = 'No'
+
+            df_bonus.drop(columns=['No Bonus', 'Centre Bonus', 'Running Bonus'], inplace=True)
+
             # ------ Type_of_Bonus ------
 
-            df['Type_of_Bonus'] = df[type_cols].apply(build_types, axis=1)
+            bonus_cols = ['Bonus', 'Centre Bonus', 'Running Bonus']
 
-            # If No Bonus flag is set, override the type to 'No' (explicit precedence)
-            df.loc[df['No Bonus'] == 1, 'Type_of_Bonus'] = 'No'
+            # Ensure numeric 0/1
+            for col in bonus_cols:
+                df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0).astype(int)
 
-            # If you want the final column name to be "Bonus" (Yes/No), rename and drop flags:
-            df = df.drop(columns=flag_cols)        # drop original numeric flags
-            df = df.rename(columns={'Bonus_label': 'Bonus'})
+            # Map 1 → column name, 0 → blank
+            for col in bonus_cols:
+                df[col] = df[col].map({1: col, 0: ''})
 
+            # Join them safely
+            df['Type_of_Bonus'] = df[bonus_cols].apply(
+                lambda x: ' '.join(v for v in x if v != ''), axis=1)
 
-            # ---------------- Zone_of_Action ----------------
-            cols = ['Z1', 'Z2', 'Z3', 'Z4', 'Z5', 'Z6', 'Z7', 'Z8', 'Z9', 'Z10', 'Z11']
-            for col in cols:
-                df[col] = df[col].replace({'1': col, '0': ""}) # ERROR FIX
-            df['Zone_of_Action'] = df[cols].fillna('').sum(axis=1)
-            df.drop(columns=cols, inplace=True)
+            # Drop original raw bonus columns
+            df.drop(columns=bonus_cols + ['No Bonus'], inplace=True, errors='ignore')
 
-            # ---------------- Raiding_Team_Points ----------------
-            cols = [f'RT{i}' for i in range(10)]
-            df = safe_to_numeric(df, cols) # ERROR FIX
-            for col in cols:
+            # Merge final clean Bonus column back into main df
+            df = pd.concat([df_bonus, df], axis=1)
+
+            # ------ Zone_of_Action ------
+
+            zone_cols = ['Z1', 'Z2', 'Z3', 'Z4', 'Z5', 'Z6', 'Z7', 'Z8', 'Z9', 'Z10', 'Z11']
+
+            # Convert to integers first (handles '0', '1', blanks)
+            for col in zone_cols:
+                df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0).astype(int)
+
+            # Replace 1 → column name, 0 → blank
+            for col in zone_cols:
+                df[col] = df[col].map({1: col, 0: ''})
+
+            # Join zone names cleanly
+            df['Zone_of_Action'] = df[zone_cols].apply(
+                lambda x: ' '.join(v for v in x if v != ''), axis=1)
+
+            df.drop(columns=zone_cols, inplace=True)
+
+            # ------ Raiding_Team_Points ------
+
+            rt_cols = ['RT0', 'RT1', 'RT2', 'RT3', 'RT4', 'RT5', 'RT6', 'RT7', 'RT8', 'RT9']
+
+            # Convert to integers first
+            for col in rt_cols:
+                df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0).astype(int)
+
+            # Replace 1 → its numeric suffix (e.g., RT3 → 3)
+            for col in rt_cols:
                 num = int(col.replace("RT", ""))
-                df[col] = df[col].replace(1, num)
-            df['Raiding_Team_Points'] = df[cols].fillna(0).sum(axis=1).astype(int)
-            df.drop(columns=cols, inplace=True)
+                df[col] = df[col].map({1: num, 0: 0})
 
-            # ---------------- Defending_Team_Points ----------------
-            cols = [f'DT{i}' for i in range(5)]
-            df = safe_to_numeric(df, cols) # ERROR FIX
-            for col in cols:
-                num = int(col.replace('DT', ''))
-                df[col] = df[col].replace(1, num)
-            df['Defending_Team_Points'] = df[cols].fillna(0).astype(int).sum(axis=1)
-            df.drop(columns=cols, inplace=True)
+            # Sum up points
+            df['Raiding_Team_Points'] = df[rt_cols].sum(axis=1).astype(int)
+            df.drop(columns=rt_cols, inplace=True)
 
-            # ---------------- Attacking_Skill ----------------
-            cols = ['Hand touch', 'Running hand touch', 'Toe touch', 'Running Kick', 'Reverse Kick',
-                    'Side Kick', 'Def self out', 'Flying Touch']
-            for col in cols:
-                df[col] = df[col].replace({'1': col, '0': ''}) # ERROR FIX
-            df[cols] = df[cols].fillna('')
-            df['Attacking_Skill'] = df[cols].apply(lambda x: ', '.join(filter(None, x)), axis=1)
-            df.drop(columns=cols, inplace=True)
 
-            # ---------------- Defensive_Skill ----------------
-            cols = ['Body hold', 'Ankle hold', 'Single Thigh hold', 'Double Thigh Hold', 'Push',
-                    'Dive', 'Block', 'Chain_def', 'Follow', 'Raider self out']
-            for col in cols:
-                df[col] = df[col].replace({'1': col, '0': ''}) # ERROR FIX
-            df[cols] = df[cols].fillna('')
-            df['Defensive_Skill'] = df[cols].apply(lambda x: ', '.join(filter(None, x)), axis=1)
-            df.drop(columns=cols, inplace=True)
+            # ----------- Defending_Team_Points -----------
 
-            # ---------------- Defenders_Self_Out ----------------
-            cols = ['DS0', 'DS1', 'DS2', 'DS3']
-            df = safe_to_numeric(df, cols) # ERROR FIX
-            for col in cols:
-                num = int(col.replace('DS', ''))
-                df[col] = df[col].replace(1, num)
-            df['Number_of_Defenders_Self_Out'] = df[cols].fillna(0).astype(int).sum(axis=1)
-            df.drop(columns=cols, inplace=True)
+            dt_cols = ['DT0', 'DT1', 'DT2', 'DT3', 'DT4']
+            for col in dt_cols:
+                df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0).astype(int)
+                num = int(col.replace("DT", ""))
+                df[col] = df[col].map({1: num, 0: 0})
 
-            # ---------------- Counter_Action_Skill ----------------
-            cols = ['In Turn', 'Out Turn', 'Create Gap', 'Jump', 'Dubki', 'Struggle', 'Release', 'Flying Reach']
-            for col in cols:
-                df[col] = df[col].replace({'1': col, '0': ''}) # ERROR FIX
-            df[cols] = df[cols].fillna('')
-            df['Counter_Action_Skill'] = df[cols].apply(lambda x: ', '.join(filter(None, x)), axis=1)
-            df.drop(columns=cols, inplace=True)
+            df['Defending_Team_Points'] = df[dt_cols].sum(axis=1).astype(int)
+            df.drop(columns=dt_cols, inplace=True)
 
-            # ---------------- Raid_Length ----------------
-            cols = [f'RL{i}' for i in range(1, 31)]
-            df = safe_to_numeric(df, cols) # ERROR FIX
-            for col in cols:
-                num = int(col.replace('RL', ''))
-                df[col] = df[col].replace(1, num)
-            df['Raid_Length'] = 30 - df[cols].fillna(0).astype(int).sum(axis=1)
-            df.drop(columns=cols, inplace=True)
 
-            # ------ Defender_Position ------
-            cols = ['LCorner', 'LIN', 'LCover', 'Center', 'RCover', 'RIN', 'RCorner']
-            for col in cols:
-                df[col] = df[col].replace({1: col, 0: ''})
-            df[cols] = df[cols].fillna('')
-            df['Defender_Position'] = df[cols].apply(lambda x: ', '.join(filter(None, x)), axis=1)
-            df.drop(columns=cols, inplace=True)
+            # ------ Attacking_Skill ----------
 
-            # ------ QoD_Skill ------
-            cols = ['Clean', 'Not Clean']
-            for col in cols:
-                df[col] = df[col].replace({1: col, 0: ''})
-            df[cols] = df[cols].fillna('')
-            df['QoD_Skill'] = df[cols].apply(lambda x: ', '.join(filter(None, x)), axis=1)
-            df.drop(columns=cols, inplace=True)
+            att_skill_cols = ['Hand touch', 'Running hand touch', 'Toe touch', 'Running Kick', 'Reverse Kick',
+                                'Side Kick', 'Defender self out', 'Flying Touch']
+
+            # 1. Clean and convert to integers (0/1)
+            for col in att_skill_cols:
+                df[col] = df[col].astype(str).str.strip()  # Remove extra spaces
+                df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0).astype(int)
+
+            # 2. Map 1 → skill name, 0 → blank
+            for col in att_skill_cols:
+                df[col] = df[col].map({1: col, 0: ''})
+
+            # 3. Join all non-empty skills into a single string
+            df['Attacking_Skill'] = df[att_skill_cols].apply(
+            lambda x: ', '.join([v for v in x if v != '']).strip(), axis=1)
+
+            df.drop(columns=att_skill_cols, inplace=True)
+
             
-            # ---------------- Tie Break Raids ----------------
-            cols = ['Yes', 'No']
-            for col in cols:
-                df[col] = df[col].replace({1: col, 0: ''})
-            df[cols] = df[cols].fillna('')
-            df['Tie_Break_Raids'] = df[cols].apply(lambda x: ', '.join(filter(None, x)), axis=1)
-            df.drop(columns=cols, inplace=True)
+            # ------------- Defensive_Skill --------------
 
-            # ---------------- Add Identifiers ----------------
+            ds_skill_cols = ['Body hold', 'Ankle hold', 'Single Thigh hold', 'Double Thigh Hold', 'Push', 'Dive', 'Block',
+                                'Chain_def', 'Follow', 'Raider self out']
+
+            # 1. Clean and convert to integers (0/1)
+            for col in ds_skill_cols:
+                df[col] = df[col].astype(str).str.strip()  # Remove extra spaces
+                df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0).astype(int)
+
+            # 2. Map 1 → skill name, 0 → blank
+            for col in ds_skill_cols:
+                df[col] = df[col].map({1: col, 0: ''})
+
+            # 3. Join all non-empty skills into a single string
+            df['Defensive_Skill'] = df[ds_skill_cols].apply(
+                lambda x: ', '.join([v for v in x if v != '']).strip(), axis=1)
+
+            df.drop(columns=ds_skill_cols, inplace=True)
+
+            # ------------ Number_of_Defenders_Self_Out --------------
+
+            dso_cols = ['DS0', 'DS1', 'DS2', 'DS3']
+            for col in dso_cols:
+                df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0).astype(int)
+                num = int(col.replace("DS", ""))
+                df[col] = df[col].map({1: num, 0: 0})
+
+            df['Number_of_Defenders_Self_Out'] = df[dso_cols].sum(axis=1).astype(int)
+            df.drop(columns=dso_cols, inplace=True)
+
+            
+            # ------ Counter_Action_Skill ------
+
+            ca_cols = ['In Turn', 'Out Turn', 'Create Gap', 'Jump', 'Dubki', 'Struggle', 'Release', 'Flying Reach']
+
+            # 1. Clean and convert to integers (0/1)
+            for col in ca_cols:
+                df[col] = df[col].astype(str).str.strip()  # Remove extra spaces
+                df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0).astype(int)
+
+            # 2. Map 1 → skill name, 0 → blank
+            for col in ca_cols:
+                df[col] = df[col].map({1: col, 0: ''})
+
+            # 3. Join all non-empty skills into a single string
+            df['Counter_Action_Skill'] = df[ca_cols].apply(
+                lambda x: ', '.join([v for v in x if v != '']).strip(), axis=1)
+            df.drop(columns=ca_cols, inplace=True)
+
+
+            # ------ Defender_Positions ------
+
+            def_pos_cols = ['LCorner', 'LIN', 'LCover', 'Center', 'RCover', 'RIN', 'RCorner']
+
+            # 1. Clean and convert to integers (0/1)
+            for col in def_pos_cols:
+                df[col] = df[col].astype(str).str.strip()  # Remove extra spaces
+                df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0).astype(int)
+
+            # 2. Map 1 → skill name, 0 → blank
+            for col in def_pos_cols:
+                df[col] = df[col].map({1: col, 0: ''})
+
+            # 3. Join all non-empty skills into a single string
+            df['Defender_Position'] = df[def_pos_cols].apply(
+                lambda x: ', '.join([v for v in x if v != '']).strip(), axis=1)
+            df.drop(columns=def_pos_cols, inplace=True)
+
+            
+            # ------ QoD_Skill ------
+
+            qod_cols = ['Clean', 'Not Clean']
+            # 1. Clean and convert to integers (0/1)
+            for col in qod_cols:
+                df[col] = df[col].astype(str).str.strip()  # Remove extra spaces
+                df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0).astype(int)
+
+            # 2. Map 1 → skill name, 0 → blank
+            for col in qod_cols:
+                df[col] = df[col].map({1: col, 0: ''})
+
+            # 3. Join all non-empty skills into a single string
+            df['QoD_Skill'] = df[qod_cols].apply(
+                lambda x: ', '.join([v for v in x if v != '']).strip(), axis=1)
+
+            df.drop(columns=qod_cols, inplace=True)
+
+            # ---------------- Raiding Length ----------------
+
+            rl_cols = [f'RL{i}' for i in range(1, 31)]
+
+            for col in rl_cols:
+                df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0).astype(int)
+                num = int(col.replace("RL", ""))
+                df[col] = df[col].map({1: num, 0: 0})
+
+            # Calculate Actual Raid_Length
+            df['Raid_Length'] = 30 - df[rl_cols].sum(axis=1).astype(int)
+            df.drop(columns=rl_cols, inplace=True)
+
+            # ---------------- Match Metadata ----------------
+
             n = len(df)
             df['Tournament_ID'] = tour_id
             df['Season_ID'] = seas_id
@@ -309,48 +406,99 @@ if uploaded_file:
             df['Match_ID'] = match_id
             df['Match_Raid_Number'] = range(1, n + 1)
 
+            
             # ---------------- Raider & Defenders Names ----------------
-            # Split the 'Player' column by '|'
+
+            # Split by "|" (tolerate spaces), expand to separate columns
             parts = df['Player'].str.split(r'\s*\|\s*', expand=True)
-            
-            # Remove jersey numbers for ALL players (handles nulls automatically)
-            parts = parts.apply(lambda col: col.str.split('-', n=1).str[1].str.strip().str.title())
-            
-            # Ensure there are always 8 columns (1 Raider + 7 Defenders)
-            while parts.shape[1] < 8:
-                parts[parts.shape[1]] = None
-            
+
+            # Keep only the names after the dash, strip spaces, and make Title case
+            names = parts.apply(lambda s: s.str.split('-', n=1).str[1].str.strip().str.title())
+
+            # Ensure we have Raider + up to 7 Defenders (add empty cols if needed)
+            needed_cols = 1 + 7  # 1 raider + 7 defenders
+            if names.shape[1] < needed_cols:
+                for _ in range(needed_cols - names.shape[1]):
+                    names[names.shape[1]] = None
+            # or if there are extra columns, drop them
+            names = names.iloc[:, :needed_cols]
+
             # Rename columns
-            names = parts.iloc[:, :8].rename(columns={
-                0: 'Raider_Name', 1: 'Defender_1_Name', 2: 'Defender_2_Name',
-                3: 'Defender_3_Name', 4: 'Defender_4_Name', 5: 'Defender_5_Name',
-                6: 'Defender_6_Name', 7: 'Defender_7_Name'
+            names = names.rename(columns={
+                0: 'Raider_Name',
+                1: 'Defender_1_Name',
+                2: 'Defender_2_Name',
+                3: 'Defender_3_Name',
+                4: 'Defender_4_Name',
+                5: 'Defender_5_Name',
+                6: 'Defender_6_Name',
+                7: 'Defender_7_Name'
             })
-            
-            # Merge back into the dataframe
+
+            # Drop original and join the new columns
             df = df.drop(columns='Player').join(names)
 
-            # ---------------- Start & Stop Time ----------------
+            
+            # ---------------- Start & End Time ----------------
+
+            # Remove milliseconds
             df['Start'] = df['Start'].str.split(',').str[0]
             df['Stop'] = df['Stop'].str.split(',').str[0]
-            
+
+            # --- Helper to handle both mm:ss and hh:mm:ss ---
             def parse_time(t):
-                if pd.isna(t): return pd.NaT
                 parts = list(map(int, t.split(":")))
-                return pd.Timedelta(minutes=parts[0], seconds=parts[1]) if len(parts) == 2 else pd.Timedelta(hours=parts[0], minutes=parts[1], seconds=parts[2])
-            
+                if len(parts) == 2:   # mm:ss
+                    m, s = parts
+                    return pd.Timedelta(minutes=m, seconds=s)
+                elif len(parts) == 3: # hh:mm:ss
+                    h, m, s = parts
+                    return pd.Timedelta(hours=h, minutes=m, seconds=s)
+
+            # Convert to timedeltas
             df['start_td'] = df['Start'].apply(parse_time)
             df['stop_td'] = df['Stop'].apply(parse_time)
-            df['Time'] = (df['stop_td'] - df['start_td']).dt.total_seconds().apply(lambda x: f"{int(x//60):02}:{int(x%60):02}" if pd.notna(x) else None)
-            df.drop(columns=['start_td', 'stop_td', 'Stop', 'Start'], inplace=True)
 
+            # Duration
+            df['duration'] = df['stop_td'] - df['start_td']
+
+            # Total seconds
+            df['total_secs'] = df['duration'].dt.total_seconds()
+
+            # Format as mm:ss (ignores hours, rolls into minutes)
+            df['Time'] = df['total_secs'].apply(lambda x: f"{int(x//60):02}:{int(x%60):02}")
+
+            # Clean up
+            df.drop(columns=['start_td', 'stop_td', 'duration', 'total_secs', 'Stop', 'Start'], inplace=True)
+
+
+            # ---------------- Tie Break Raids ----------------
+
+            tie_cols = ['Yes', 'No']
+            for col in tie_cols:
+                df[col] = df[col].astype(str).str.strip()  # Remove extra spaces
+                df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0).astype(int)
+
+            # 2. Map 1 → skill name, 0 → blank
+            for col in tie_cols:
+                df[col] = df[col].map({1: col, 0: ''})
+
+            # 3. Join all non-empty skills into a single string
+            df['Tie_Break_Raids'] = df[tie_cols].apply(
+                lambda x: ', '.join([v for v in x if v != '']).strip(), axis=1)
+
+            df.drop(columns=tie_cols, inplace=True)
+
+            
             # ---------------- New Columns ----------------
             new_columns = [
                 # --- Extra Columns ---
                 'Video_Link', 'Video', 'Event', 'YC_Extra',                     # 4
 
                 # --- TEAM RAID NUMBERING ---
-                'Team_Raid_Number',                                             # 1
+                'Team_Raid_Number', 'Defender_1', 'Defender_2',
+                'Defender_3', 'Defender_4', 'Defender_5',
+                'Defender_6', 'Defender_7',                                     # 8
 
                 # --- TEAMS & PLAYERS IDENTIFICATION ---
                 'Raiding_Team_ID', 'Raiding_Team_Name',
@@ -373,7 +521,7 @@ if uploaded_file:
             for col in new_columns:
                 df[col] = None
 
-
+            
             # ---------------- New Logical Order ----------------
             new_order = [
 
@@ -381,7 +529,7 @@ if uploaded_file:
                 "Season_ID", "Tournament_ID", "Match_No",
                 "Match_ID", "Event_Number", "Match_Raid_Number",
                 "Team_Raid_Number", "Raid_Number",
-                "Half", "Time", "Raid_Length",                                                              # 11
+                "Half", "Time", "Raid_Length",                                                               # 11
 
                 # 2. Raid Outcome & Scoring
                 "Outcome", "All_Out", "Bonus", "Type_of_Bonus", "Technical_Point", "Raider_Self_Out",
@@ -396,117 +544,158 @@ if uploaded_file:
                 "Raider_Name", "Player_ID",
                 "Raider_ID", "Raiding_Team_ID",
                 "Raiding_Team_Name", "Defending_Team_ID",
-                "Defending_Team_Name",                                                                        # 7
+                "Defending_Team_Name",                                                                          # 7
 
                 # 4. Defenders’ Info
                 "Number_of_Defenders", "Defender_Position",
-                "Defender_1_Name", "Defender_2_Name",
-                "Defender_3_Name", "Defender_4_Name",
-                "Defender_5_Name", "Defender_6_Name", "Defender_7_Name",
-                "Number_of_Defenders_Self_Out",                                                               # 10
+                "Defender_1", "Defender_1_Name", "Defender_2", "Defender_2_Name",
+                "Defender_3", "Defender_3_Name", "Defender_4", "Defender_4_Name",
+                "Defender_5", "Defender_5_Name", "Defender_6", "Defender_6_Name",                              # 17
+                "Defender_7", "Defender_7_Name",
+                "Number_of_Defenders_Self_Out",                                                               
             
                 # 5. Skills & Actions
                 "Attacking_Skill", "Defensive_Skill", "QoD_Skill",
-                "Counter_Action_Skill", "Tie_Break_Raids",                                                    # 5
+                "Counter_Action_Skill", "Tie_Break_Raids",                                                     # 5
 
                 # 6. Video & Event Metadata
-                "Video_Link", "Video", "Event", "YC_Extra"                                                    # 4
+                "Video_Link", "Video", "Event", "YC_Extra"                                                     # 4
             ]
 
-            df = df.reindex(columns = new_order) # Use reindex to avoid errors if a column is missing
+            df = df[new_order]
 
-            # ---------------- Points Calculation ----------------
-            df = safe_to_numeric(df, ['All_Out']) # ERROR FIX
+            print("Columns Count:", len(df.columns))
+
+            
+            # ---------------- Updating Points Columns ----------------
+
+            # Raiding_Bonus_Points
             df["Raiding_Bonus_Points"] = (df["Bonus"] == "Yes").astype(int)
-            defender_cols_list = ['Defender_1_Name', 'Defender_2_Name', 'Defender_3_Name', 'Defender_4_Name', 'Defender_5_Name', 'Defender_6_Name', 'Defender_7_Name']
+
+            # Raiding_Touch_Points
+            defender_cols = ['Defender_1_Name', 'Defender_2_Name', 'Defender_3_Name',
+                            'Defender_4_Name', 'Defender_5_Name', 'Defender_6_Name', 'Defender_7_Name']
             df['Raiding_Touch_Points'] = 0
             mask = df['Outcome'] == 'Successful'
-            df.loc[mask, 'Raiding_Touch_Points'] = df.loc[mask, defender_cols_list].notna().sum(axis=1) - df.loc[mask, 'Number_of_Defenders_Self_Out']
+            df.loc[mask, 'Raiding_Touch_Points'] = (
+                df.loc[mask, defender_cols].notna().sum(axis=1)
+                - df.loc[mask, 'Number_of_Defenders_Self_Out']
+                )
+
+            # Raiding_All_Out_Points
             df["Raiding_All_Out_Points"] = (((df['Outcome'] == 'Successful') & (df["All_Out"] == 1)).astype(int) * 2)
+
+            # Raiding_Self_Out_Points
             df['Raiding_Self_Out_Points'] = df['Number_of_Defenders_Self_Out']
+
+            # Defending_Bonus_Points
             df['Defending_Bonus_Points'] = (((df['Number_of_Defenders'] <= 3) & (df['Outcome'] == 'Unsuccessful')).astype(int))
-            df["Raider_Self_Out"] = (df["Defensive_Skill"] == "Raider self out (lobby, time out, empty raid 3)").astype(int)
+
+            # Raider_Self_Out (helper col for defense logic)
+            df["Raider_Self_Out"] = (df["Defensive_Skill"] == "Raider self out").astype(int)
+
+            # Defending_Capture_Points
             df['Defending_Capture_Points'] = (((df['Outcome'] == 'Unsuccessful') & (df['Raider_Self_Out'] == 0)).astype(int))
+
+            # Defending_All_Out_Points
             df["Defending_All_Out_Points"] = (((df['Outcome'] == 'Unsuccessful') & (df["All_Out"] == 1)).astype(int) * 2)
+
+            # Defending_Self_Out_Points
             df['Defending_Self_Out_Points'] = df["Raider_Self_Out"]
 
+            # Copy Outcome to Event
+            df['Event'] = df['Outcome']
 
-            # ---------------- Quality Checks ----------------
+
+            # ---------------- CSV Quality Check ----------------
+            print("\n✅ Final CSV is Ready for Quality Check.\n")
+
+
+
+            ######## Quality Check #########
 
             # QC 1: Empty Columns
-            cols = ['Raid_Length', 'Outcome', 'Bonus', 'All_Out', 'Raid_Number', 'Raider_Name', 'Number_of_Defenders']
-            mask = df[cols].isna() | df[cols].eq('')
+
+            cols_qc1 = ['Raid_Length', 'Outcome', 'Bonus', 'All_Out', 'Raid_Number', 'Raider_Name', 'Number_of_Defenders']
+            mask = df[cols_qc1].isna() | df[cols_qc1].eq('')
             invalid_rows = df[mask.any(axis=1)]
             if not invalid_rows.empty:
                 for idx, row in invalid_rows.iterrows():
                     empty_cols = mask.loc[idx][mask.loc[idx]].index.tolist()
                     print(f"❌ Event {row['Event_Number']}: Empty in columns → {', '.join(empty_cols)}. Please check and update.\n")
             else:
-                print("QC 1: ✅ All rows are completely filled. Thank you!\n")
+                print("QC 1: ✅ All rows are completely filled.\n")
 
+            
             # QC 2: Outcome Empty consistency
-            cols_qc1 = ['Defender_1_Name', 'Defender_2_Name', 'Defender_3_Name', 'Defender_4_Name', 
-                        'Defender_5_Name', 'Defender_6_Name', 'Defender_7_Name', 
-                        'Attacking_Skill', 'Defensive_Skill', 'Counter_Action_Skill', 'Zone_of_Action']
-            
-            # Clean data: treat empty strings, None, and whitespace as NaN
-            df[cols_qc1] = df[cols_qc1].applymap(lambda x: pd.NA if pd.isna(x) or str(x).strip() == '' else x)
-            
-            # Identify rows where ALL QC1 columns are empty
-            cols_empty_qc1 = df[cols_qc1].isna().all(axis=1)
-            
-            # Create mask for invalid rows
-            mask_qc1_invalid = (
+
+            # Ensure the columns we are checking numerically are actually numbers.
+            # This is the key fix for the incorrect error messages.
+            numeric_cols = ['All_Out', 'Raiding_Team_Points', 'Defending_Team_Points']
+            for col in numeric_cols:
+                # Convert column to a number, forcing errors into NaN, then fill NaN with 0
+                df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0).astype(int)
+
+
+            cols_qc2 = [
+                'Defender_1_Name', 'Defender_2_Name', 'Defender_3_Name', 'Defender_4_Name', 'Defender_5_Name', 'Defender_6_Name',
+                'Defender_7_Name', 'Attacking_Skill', 'Defensive_Skill', 'Counter_Action_Skill', 'Zone_of_Action'
+            ]
+            cols_empty_qc2 = df[cols_qc2].replace('', pd.NA).isna().all(axis=1)
+
+            # This mask will now work correctly because the data types are correct
+            mask_qc2_invalid = (
                 (df['Outcome'] == 'Empty') & ~(
-                    cols_empty_qc1 &
+                    cols_empty_qc2 &
                     (df['All_Out'] == 0) &
                     (df['Raiding_Team_Points'] == 0) &
                     (df['Defending_Team_Points'] == 0) &
                     (df['Bonus'] == 'No')
                 )
             )
-            
-            # Display clear errors
-            if mask_qc1_invalid.any():
-                for idx, row in df[mask_qc1_invalid].iterrows():
-                    non_empty_cols = row[cols_qc1].dropna().index.tolist()
+
+            if mask_qc2_invalid.any():
+                for idx, row in df[mask_qc2_invalid].iterrows():
+                    issues = []
                     
+                    non_empty_cols = row[cols_qc2].replace('', pd.NA).dropna().index.tolist()
                     if non_empty_cols:
-                        # Case 1: Problem in cols_qc1
-                        print(f"❌ {row['Event_Number']}: → When Outcome is 'Empty', these columns should be empty: {', '.join(non_empty_cols)}.\n")
-                    else:
-                        # Case 2: Problem in numeric or Bonus fields
-                        issues = []
-                        if row['All_Out'] != 0:
-                            issues.append(f"All_Out = {row['All_Out']}")
-                        if row['Raiding_Team_Points'] != 0:
-                            issues.append(f"Raiding_Team_Points = {row['Raiding_Team_Points']}")
-                        if row['Defending_Team_Points'] != 0:
-                            issues.append(f"Defending_Team_Points = {row['Defending_Team_Points']}")
-                        if row['Bonus'] != 'No':
-                            issues.append(f"Bonus = {row['Bonus']}")
-                        
-                        issue_text = ', '.join(issues)
-                        print(f"❌ {row['Event_Number']}: → When Outcome is 'Empty', there is an invalid condition: {issue_text}.\n")
+                        issues.append(f"these columns should be empty: {', '.join(non_empty_cols)}")
+
+                    if row['All_Out'] != 0:
+                        issues.append(f"All_Out should be 0 (is {row['All_Out']})")
+                    if row['Raiding_Team_Points'] != 0:
+                        issues.append(f"Raiding_Team_Points should be 0 (is {row['Raiding_Team_Points']})")
+                    if row['Defending_Team_Points'] != 0:
+                        issues.append(f"Defending_Team_Points should be 0 (is {row['Defending_Team_Points']})")
+                    if row['Bonus'] != 'No':
+                        issues.append(f"Bonus should be 'No' (is '{row['Bonus']}')")
+                    
+                    issue_string = '; '.join(issues)
+                    print(f"❌ {row['Event_Number']}: → When Outcome is 'Empty', found inconsistencies: {issue_string}.\n")
             else:
                 print("QC 2: ✅ All rows meet conditions for Outcome = 'Empty'.\n")
 
+
             # QC 3: Successful / Unsuccessful with Bonus = No & Raider_Self_Out = 0
-            cols_qc2 = ['Defender_1_Name', 'Number_of_Defenders', 'Zone_of_Action']
+
+            cols_qc3 = ['Defender_1_Name', 'Number_of_Defenders', 'Zone_of_Action']
             non_empty_outcomes = (
                 df['Outcome'].isin(['Successful', 'Unsuccessful'])
             ) & (df['Bonus'] == 'No') & (df['Raider_Self_Out'] == 0)
-            cols_filled_qc2 = df[cols_qc2].replace('', pd.NA).notna().all(axis=1)
-            mask_qc2_invalid = non_empty_outcomes & ~cols_filled_qc2
-            if mask_qc2_invalid.any():
-                for idx, row in df[mask_qc2_invalid].iterrows():
-                    empty_cols = row[cols_qc2].replace('', pd.NA).isna()
+            cols_filled_qc3 = df[cols_qc3].replace('', pd.NA).notna().all(axis=1)
+            mask_qc3_invalid = non_empty_outcomes & ~cols_filled_qc3
+            if mask_qc3_invalid.any():
+                for idx, row in df[mask_qc3_invalid].iterrows():
+                    empty_cols = row[cols_qc3].replace('', pd.NA).isna()
                     missing_cols = empty_cols[empty_cols].index.tolist()
                     print(f"❌ {row['Event_Number']}: When Outcome='{row['Outcome']}', Bonus='No', Raider_Self_Out=0 → Missing: {', '.join(missing_cols)}.\n")
             else:
                 print("QC 3: ✅ All rows are Valid.\n")
 
+
             # QC 4: Raid_Number = 3 must have Outcome 'Empty'
+
             mask_invalid = (df['Raid_Number'] == 3) & (df['Outcome'] == 'Empty')
             if mask_invalid.any():
                 for idx, row in df[mask_invalid].iterrows():
@@ -514,7 +703,10 @@ if uploaded_file:
             else:
                 print("QC 4: ✅ All Raid_Number = 3 rows have valid Outcomes.\n")
 
+            
+            
             # QC 5: Attacking & Defensive Points match
+
             def check_points(cols, total_col, label):
                 # print(f"\nChecking {label} → '{total_col}'")
                 mismatch = df[cols].sum(axis=1) != df[total_col]
@@ -536,6 +728,7 @@ if uploaded_file:
             )
 
             # QC 6: Outcome Successful/Unsuccessful must have points
+
             def check_points_nonzero(df, outcome, cols, team_name):
                 outcome_mask = df['Outcome'].eq(outcome)
                 zero_points = df[cols].fillna(0).sum(axis=1).eq(0)
@@ -556,14 +749,16 @@ if uploaded_file:
             )
 
             # QC 7: Defending_Self_Out_Points > 1
+
             mismatch = df['Defending_Self_Out_Points'] > 1
             if mismatch.any():
-                for msg in "❌ " + df.loc[mismatch, 'Event_Number'].astype(str) + "  Check 'Raider self out' column and Update it\n":
+                for msg in "❌ " + df.loc[mismatch, 'Event_Number'].astype(str) + "  Check 'Raider self out'\n":
                     print(msg)
             else:
                 print('QC 7: ✅ All rows are correct.\n')
 
             # QC 8: Successful Outcome must reset Raid_Number
+
             success_rows = df.index[df['Outcome'] == 'Successful']
             mismatches = []
             for idx in success_rows:
@@ -578,7 +773,9 @@ if uploaded_file:
             else:
                 print("QC 8: ✅ All rows are correct.\n")
 
+
             # QC 9: Empty Raid Consistency
+
             errors_found = False
             for idx, row in df.iterrows():
                 if row['Raid_Number'] == 2 and row['Outcome'] == 'Empty':
@@ -599,7 +796,9 @@ if uploaded_file:
             if not errors_found:
                 print("QC 10: ✅ All rows have valid Raid_Length values.\n")
 
+            
             # QC 11: Successful, No Bonus -> Defensive & Counter Action Skill consistency
+
             filtered_df = df[
                 (df['Outcome'] == 'Successful') &
                 (df['Bonus'] == 'No') &
@@ -616,7 +815,9 @@ if uploaded_file:
             else:
                 print("QC 11: ✅ All rows are correct.\n")
 
+
             # QC 12: Successful, No Bonus, No Defenders Self Out
+
             fil_df = df[
                 (df['Outcome'] == 'Successful') &
                 (df['Bonus'] == 'No') &
@@ -635,6 +836,7 @@ if uploaded_file:
             else:
                 print("QC 12: ✅ All rows are correct.\n")
 
+            
             # QC 13: Outcome = Unsuccessful -> Defensive_Skill must NOT be empty
             qc_violations = df[
                 (df['Outcome'] == 'Unsuccessful') &
@@ -698,29 +900,46 @@ if uploaded_file:
 
             kabaddi_raid_number_qc_grouped(df)
 
+            
             # --- QC 15: Defender without Position ---
+
             qc_failed = df[(df["Defender_1_Name"].notna()) & (df["Defender_Position"].isna() | (df["Defender_Position"] == ""))]
             if qc_failed.empty:
-                print("\nQC 15: ✅ All defenders have positions.\n")
+                print("\nQC 15: ✅ All defenders have positions.")
             else:
                 for event in qc_failed['Event_Number']:
                     print(f"\n❌ {event}: Defender(s) present but 'Defender_Position' is empty.\n")
 
-            # --- QC 16: Defensive_Skill & QoD_Skill Alignment ---
-            qc_failed_1 = df[(df["Defensive_Skill"] != "") & (df["QoD_Skill"] == "")]
-            qc_failed_2 = df[(df["QoD_Skill"] != "") & (df["Defensive_Skill"] == "")]
 
-            if qc_failed_1.empty and qc_failed_2.empty:
+            # --- QC 16: Defensive_Skill & QoD_Skill Alignment ---
+
+            # Exclude specific values of Defensive_Skill
+            excluded_skills = ["Defender self out", "Raider self out"]
+
+            # Type 1: Defensive_Skill present (not excluded) but QoD_Skill missing
+            qc_16_1 = df[
+                (df["Defensive_Skill"].fillna("").str.strip() != "") &
+                (~df["Defensive_Skill"].isin(excluded_skills)) &
+                (df["QoD_Skill"].fillna("").str.strip() == "")
+            ]
+
+            # Type 2: QoD_Skill present but Defensive_Skill missing
+            qc_16_2 = df[
+                (df["QoD_Skill"].fillna("").str.strip() != "") &
+                (df["Defensive_Skill"].fillna("").str.strip() == "")
+            ]
+
+            # Final check
+            if qc_16_1.empty and qc_16_2.empty:
                 print("QC 16: ✅ Defensive_Skill and QoD_Skill are aligned correctly.")
             else:
-                if not qc_failed_1.empty:
-                    print(f"❌ [Type 1]: {qc_failed_1['Event_Number'].tolist()} → Defensive_Skill present but QoD_Skill missing.")
-                if not qc_failed_2.empty:
-                    print(f"❌ [Type 2]: {qc_failed_2['Event_Number'].tolist()} → QoD_Skill present but Defensive_Skill missing.")
+                if not qc_16_1.empty:
+                    print(f"❌ [Type 1]: {qc_16_1['Event_Number'].tolist()} → Defensive_Skill present but QoD_Skill missing.")
+                if not qc_16_2.empty:
+                    print(f"❌ [Type 2]: {qc_16_2['Event_Number'].tolist()} → QoD_Skill present but Defensive_Skill missing.")
 
 
-
-            # ============================================================================
+# =========================================================================
 
             # Example: saving final processed dataframe
             df.to_csv(output_file_name, index=False)
@@ -738,8 +957,7 @@ if uploaded_file:
                     <pre>{qc_text}</pre>
                 </div>
                 """,
-                unsafe_allow_html=True
-            )
+                unsafe_allow_html=True)
 
             st.markdown("")
             st.markdown("")
@@ -781,3 +999,4 @@ if uploaded_file:
         except Exception as e:
             sys.stdout = sys.__stdout__
             st.error(f"❌ An error occurred: {e}")
+    
