@@ -942,9 +942,6 @@ if uploaded_file:
             # Combine failed rows
             failed_rows = df[condition_1 | condition_2]
             
-            # Debug count
-            print("Debug: Failed rows count =", len(failed_rows))
-            
             # If-Else with detailed print statements
             if failed_rows.empty:
                 print("QC 17: ✅ All rows are correct!\n")
@@ -957,7 +954,6 @@ if uploaded_file:
                         print(f"❌ {row['Event_Number']}: Bonus is 'No' but Type_of_Bonus should be null.\n")
 
 
-            
 # =========================================================================
 
             # Example: saving final processed dataframe
@@ -1019,6 +1015,7 @@ if uploaded_file:
             sys.stdout = sys.__stdout__
             st.error(f"❌ An error occurred: {e}")
     
+
 
 
 
