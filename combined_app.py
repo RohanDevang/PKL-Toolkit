@@ -563,9 +563,6 @@ if uploaded_file:
             ]
 
             df = df[new_order]
-
-            print("Columns Count:", len(df.columns))
-
             
             # ---------------- Updating Points Columns ----------------
 
@@ -605,12 +602,6 @@ if uploaded_file:
 
             # Copy Outcome to Event
             df['Event'] = df['Outcome']
-
-
-            # ---------------- CSV Quality Check ----------------
-            print("\n✅ Final CSV is Ready for Quality Check.\n")
-
-
 
             ######## Quality Check #########
 
@@ -884,8 +875,7 @@ if uploaded_file:
                         if raid_num != expected:
                             print(
                                 f"❌ {event_number}: Outcome is '{outcome}' and 'Raid_Number' is {raid_num}. "
-                                f"Expected 'Raid_Number': {expected}. Please check and update."
-                            )
+                                f"Expected 'Raid_Number': {expected}. Please check and update.\n")
                             error_found = True
 
                         # ---- Update empty_count ----
@@ -905,7 +895,7 @@ if uploaded_file:
 
             qc_failed = df[(df["Defender_1_Name"].notna()) & (df["Defender_Position"].isna() | (df["Defender_Position"] == ""))]
             if qc_failed.empty:
-                print("\nQC 15: ✅ All defenders have positions.")
+                print("\nQC 15: ✅ All defenders have positions.\n")
             else:
                 for event in qc_failed['Event_Number']:
                     print(f"\n❌ {event}: Defender(s) present but 'Defender_Position' is empty.\n")
@@ -934,9 +924,9 @@ if uploaded_file:
                 print("QC 16: ✅ Defensive_Skill and QoD_Skill are aligned correctly.")
             else:
                 if not qc_16_1.empty:
-                    print(f"❌ [Type 1]: {qc_16_1['Event_Number'].tolist()} → Defensive_Skill present but QoD_Skill missing.")
+                    print(f"❌ [Type 1]: {qc_16_1['Event_Number'].tolist()} → Defensive_Skill present but QoD_Skill missing.\n")
                 if not qc_16_2.empty:
-                    print(f"❌ [Type 2]: {qc_16_2['Event_Number'].tolist()} → QoD_Skill present but Defensive_Skill missing.")
+                    print(f"❌ [Type 2]: {qc_16_2['Event_Number'].tolist()} → QoD_Skill present but Defensive_Skill missing.\n")
 
 
 # =========================================================================
@@ -1000,3 +990,4 @@ if uploaded_file:
             sys.stdout = sys.__stdout__
             st.error(f"❌ An error occurred: {e}")
     
+
