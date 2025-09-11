@@ -905,20 +905,22 @@ if uploaded_file:
 
             # Exclude specific values of Defensive_Skill
             excluded_skills = ["Defender self out", "Raider self out"]
-
+            
             # Type 1: Defensive_Skill present (not excluded) but QoD_Skill missing
             qc_16_1 = df[
+                (df["Outcome"] == "Unsuccessful") &
                 (df["Defensive_Skill"].fillna("").str.strip() != "") &
                 (~df["Defensive_Skill"].isin(excluded_skills)) &
                 (df["QoD_Skill"].fillna("").str.strip() == "")
             ]
-
+            
             # Type 2: QoD_Skill present but Defensive_Skill missing
             qc_16_2 = df[
+                (df["Outcome"] == "Unsuccessful") &
                 (df["QoD_Skill"].fillna("").str.strip() != "") &
                 (df["Defensive_Skill"].fillna("").str.strip() == "")
             ]
-
+            
             # Final check
             if qc_16_1.empty and qc_16_2.empty:
                 print("QC 16: ✅ Defensive_Skill and QoD_Skill are aligned correctly.\n")
@@ -1015,6 +1017,7 @@ if uploaded_file:
             sys.stdout = sys.__stdout__
             st.error(f"❌ An error occurred: {e}")
     
+
 
 
 
