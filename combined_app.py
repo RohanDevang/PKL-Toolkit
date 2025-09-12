@@ -613,7 +613,7 @@ if uploaded_file:
 
             # QC 1: Empty Columns
 
-            cols_qc1 = ['Raid_Length', 'Outcome', 'Bonus', 'All_Out', 'Raid_Number', 'Raider_Name', 'Number_of_Defenders']
+            cols_qc1 = ['Raid_Length', 'Outcome', 'Bonus', 'All_Out', 'Raid_Number', 'Raider_Name', 'Number_of_Defenders', 'Tie_Break_Raids']
             mask = df[cols_qc1].isna() | df[cols_qc1].eq('')
             invalid_rows = df[mask.any(axis=1)]
             if not invalid_rows.empty:
@@ -1030,6 +1030,7 @@ if uploaded_file:
             sys.stdout = sys.__stdout__
             st.error(f"❌ An error occurred: {e}")
     
+
 
 
 
