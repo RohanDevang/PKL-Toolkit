@@ -493,7 +493,7 @@ if uploaded_file:
             # ---------------- New Columns ----------------
             new_columns = [
                 # --- Extra Columns ---
-                'Video_Link', 'Video', 'Event', 'YC_Extra',                     # 4
+                'Video_Link', 'Video', 'Event', 'YC_Extra', 'Team_ID'                     # 5
 
                 # --- TEAM RAID NUMBERING ---
                 'Team_Raid_Number', 'Defender_1', 'Defender_2',
@@ -559,7 +559,7 @@ if uploaded_file:
                 "Counter_Action_Skill", "Tie_Break_Raids",                                                     # 5
 
                 # 6. Video & Event Metadata
-                "Video_Link", "Video", "Event", "YC_Extra"                                                     # 4
+                "Video_Link", "Video", "Event", "YC_Extra", "Team_ID"                                           # 5
             ]
 
             df = df[new_order]
@@ -605,6 +605,9 @@ if uploaded_file:
 
             # Copy Outcome to Event
             df['Event'] = df['Outcome']
+
+            # Video Column
+            df['Video'] = range(1, len(df) +1)
 
             ######## Quality Check #########
 
@@ -1027,6 +1030,7 @@ if uploaded_file:
             sys.stdout = sys.__stdout__
             st.error(f"❌ An error occurred: {e}")
     
+
 
 
 
