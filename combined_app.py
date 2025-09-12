@@ -493,28 +493,28 @@ if uploaded_file:
             # ---------------- New Columns ----------------
             new_columns = [
                 # --- Extra Columns ---
-                'Video_Link', 'Video', 'Event', 'YC_Extra', 'Team_ID'                     # 5
+                'Video_Link', 'Video', 'Event', 'YC_Extra', 'Team_ID',                # 5
 
                 # --- TEAM RAID NUMBERING ---
                 'Team_Raid_Number', 'Defender_1', 'Defender_2',
                 'Defender_3', 'Defender_4', 'Defender_5',
-                'Defender_6', 'Defender_7',                                     # 8
+                'Defender_6', 'Defender_7',                                            # 8
 
                 # --- TEAMS & PLAYERS IDENTIFICATION ---
                 'Raiding_Team_ID', 'Raiding_Team_Name',
                 'Defending_Team_ID', 'Defending_Team_Name',
-                'Player_ID', 'Raider_ID',                                       # 6
+                'Player_ID', 'Raider_ID',                                              # 6
 
                 # --- POINTS BREAKDOWN ---
                 'Raiding_Team_Points_Pre', 'Defending_Team_Points_Pre',
                 'Raiding_Touch_Points', 'Raiding_Bonus_Points',
                 'Raiding_Self_Out_Points', 'Raiding_All_Out_Points',
                 'Defending_Capture_Points', 'Defending_Bonus_Points',
-                'Defending_Self_Out_Points', 'Defending_All_Out_Points',         # 10
+                'Defending_Self_Out_Points', 'Defending_All_Out_Points',               # 10
 
                 # --- RAID ACTION DETAILS ---
                 'Number_of_Raiders', 'Raider_Self_Out',
-                'Defenders_Touched_or_Caught', 'Half'                            # 4
+                'Defenders_Touched_or_Caught', 'Half'                                   # 4
             ]
 
             # Add empty new columns
@@ -1030,6 +1030,7 @@ if uploaded_file:
             sys.stdout = sys.__stdout__
             st.error(f"❌ An error occurred: {e}")
     
+
 
 
 
