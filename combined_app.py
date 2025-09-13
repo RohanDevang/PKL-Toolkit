@@ -1042,37 +1042,31 @@ if uploaded_file:
 
             # Columns to check
             columns_to_check = ['QoD_Skill', 'Defender_1_Name', 'Defender_Position', 'Counter_Action_Skill']
-
+            
             # Mask for rows where Defensive_Skill == 'Raider self out'
             mask = df['Defensive_Skill'] == 'Raider self out'
-
+            
             # Skip rows where Attacking_Skill == 'Defender self out' AND Defensive_Skill == 'Raider self out'
             skip_mask = mask & (df['Attacking_Skill'] == 'Defender self out')
-
+            
             # Apply mask excluding skipped rows
             check_mask = mask & ~skip_mask
-
+            
             # Mask for rows violating the "all 4 must be empty" rule
             violations_mask = check_mask & df[columns_to_check].apply(lambda x: x.notna() & (x != ''), axis=1).any(axis=1)
-
-            # Create 'Flag' column listing non-empty columns for violated rows
-            df['Flag'] = ''
-            df.loc[violations_mask, 'Flag'] = df.loc[violations_mask, columns_to_check] \
-                                                .apply(lambda x: ', '.join(x.index[x.notna() & (x != '')]), axis=1)
-
-            # Filter flagged rows
+            
+            # Filter only the violated rows
             flagged = df[violations_mask]
-
+            
             # Print results
             if not flagged.empty:
-                for _, row in flagged.iterrows():
-                    print(f"❌ {row['Event_Number']}: → Value present in columns: {row['Flag']}")
-                    # Additional print line
+                for idx, row in flagged.iterrows():
+                    # Identify which of the 4 columns have values
+                    non_empty_cols = [col for col in columns_to_check if pd.notna(row[col]) and row[col] != '']
+                    print(f"❌ {row['Event_Number']}: → Value present in columns: {', '.join(non_empty_cols)}")
                     print(f"    Please check the above columns are empty when Defensive_Skill is 'Raider self out'.\n")
             else:
                 print("QC 21: ✅ All rows are correct.\n")
-
-
 
 
 # =========================================================================
@@ -1136,4 +1130,5 @@ if uploaded_file:
             sys.stdout = sys.__stdout__
             st.error(f"❌ An error occurred: {e}")
     
+
 
