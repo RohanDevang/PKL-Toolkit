@@ -746,18 +746,41 @@ if uploaded_file:
 
 
             # QC 6: If Outcome = 'Successful or Unsuccessful', then row at index +2 must have Raid_Number = 1
+
+            # Reset index to make position-based indexing safe
+            df2 = df.reset_index(drop=True)
+
             error_found = False
 
-            for idx, row in df.iterrows():
-                if (row['Raid_Number'] == 1) and (row['Outcome'] == 'Successful' or row['Outcome'] == 'Unsuccessful'):
-                    target_idx = idx + 2
-                    if target_idx < len(df) and df.loc[target_idx, 'Raid_Number'] != 1:
-                        print(f"❌ {row['Event_Number']}: → Raid_Number must be = 1, Check\n")
+            for i in range(len(df2)):
+                outcome = str(df2.loc[i, 'Outcome']).strip().lower()
+
+                # Rule: If Outcome is 'Successful' or 'Unsuccessful'
+                if outcome in ('successful', 'unsuccessful'):
+                    current_event = df2.loc[i, 'Event_Number']  # Example: "Raid 038"
+                    target = i + 2
+
+                    # If we are at the end of the DataFrame (no row +2), just skip
+                    if target >= len(df2):
+                        continue  # no error because there is no row +2 to check
+
+                    # Get info for the target row
+                    target_event = df2.loc[target, 'Event_Number']
+                    target_raid_number = df2.loc[target, 'Raid_Number']
+
+                    # If Raid_Number is not 1, this is a violation
+                    if target_raid_number != 1:
+                        print(
+                            f"❌ {target_event}: → Raid_Number must be = 1 "
+                            f"(Because {current_event} has Outcome = {df2.loc[i, 'Outcome']})\n"
+                        )
                         error_found = True
 
-            # Final message
+            # Final message if no errors were found
             if not error_found:
                 print("QC 6: ✅ All rows are Valid.\n")
+
+
 
 
             # QC 7: if Raid_Number = 2 & Outcome = 'Empty', then row at index -2 must have Raid_Number = 1 & Outcome = 'Empty'
@@ -767,17 +790,19 @@ if uploaded_file:
                 if row['Raid_Number'] == 2 and row['Outcome'] == 'Empty':
                     if idx >= 2:
                         prev_row = df.loc[idx - 2]
+
                         # Check if either condition fails
                         if prev_row['Raid_Number'] != 1 or prev_row['Outcome'] != 'Empty':
+                            # Printing with a comment style output
                             print(
-                                f"❌ {row['Event_Number']} is Empty, but the row at index {idx-2} "
-                                f"has Raid_Number={prev_row['Raid_Number']} and Outcome='{prev_row['Outcome']}', "
-                                f"which violates the rule.\n"
+                                f"❌ Event_Number {row['Event_Number']} is Empty, but the row with Event_Number "
+                                f"{prev_row['Event_Number']} has Raid_Number={prev_row['Raid_Number']} "
+                                f"and Outcome='{prev_row['Outcome']}', which violates the rule."
                             )
                             errors_found = True
 
             if not errors_found:
-                print("QC 7: ✅ All rows are correct.\n")
+                print("QC 7: ✅ All rows are correct.")
 
 
             # QC 8: Attacking & Defensive Points match
