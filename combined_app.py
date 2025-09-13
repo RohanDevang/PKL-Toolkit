@@ -612,17 +612,35 @@ if uploaded_file:
 
             ######## Quality Check #########
 
-            # QC 1: Empty Columns
+            # QC 1: Empty Columns (Robust Version)
 
-            cols_qc1 = ['Raid_Length', 'Outcome', 'Bonus', 'All_Out', 'Raid_Number', 'Raider_Name', 'Number_of_Defenders', 'Tie_Break_Raids']
-            mask = df[cols_qc1].isna() | df[cols_qc1].eq('')
+            cols_qc1 = [
+                'Raid_Length', 'Outcome', 'Bonus', 'All_Out', 
+                'Raid_Number', 'Raider_Name', 'Number_of_Defenders', 'Tie_Break_Raids'
+            ]
+
+            # Define a function to check for empty-like values
+            def is_empty(val):
+                if pd.isna(val):               # NaN values
+                    return True
+                val_str = str(val).strip()     # Convert to string and strip whitespace
+                if val_str == '' or val_str.lower() in ['na', 'nan']:  # Empty or placeholders
+                    return True
+                return False
+
+            # Apply function to all columns of interest
+            mask = df[cols_qc1].applymap(is_empty)
+
+            # Find rows with any empty column
             invalid_rows = df[mask.any(axis=1)]
+
             if not invalid_rows.empty:
                 for idx, row in invalid_rows.iterrows():
                     empty_cols = mask.loc[idx][mask.loc[idx]].index.tolist()
                     print(f"\n❌ Event {row['Event_Number']}: Empty in columns → {', '.join(empty_cols)}. Please check and update.\n")
             else:
                 print("\nQC 1: ✅ All rows are completely filled.\n")
+
 
             
             # QC 2: Whem Outcome = Empty These Columns must be Empty.
@@ -1003,9 +1021,14 @@ if uploaded_file:
             # Mask for rows where Defensive_Skill == 'Raider self out'
             mask = df['Defensive_Skill'] == 'Raider self out'
 
+            # Skip rows where Attacking_Skill == 'Defender self out' AND Defensive_Skill == 'Raider self out'
+            skip_mask = mask & (df['Attacking_Skill'] == 'Defender self out')
+
+            # Apply mask excluding skipped rows
+            check_mask = mask & ~skip_mask
+
             # Mask for rows violating the "all 4 must be empty" rule
-            # A violation occurs if any of the 4 columns is NOT empty or NOT NaN
-            violations_mask = mask & df[columns_to_check].apply(lambda x: x.notna() & (x != ''), axis=1).any(axis=1)
+            violations_mask = check_mask & df[columns_to_check].apply(lambda x: x.notna() & (x != ''), axis=1).any(axis=1)
 
             # Create 'Flag' column listing non-empty columns for violated rows
             df['Flag'] = ''
@@ -1018,9 +1041,12 @@ if uploaded_file:
             # Print results
             if not flagged.empty:
                 for _, row in flagged.iterrows():
-                    print(f"❌ {row['Event_Number']}: → Value present in columns: {row['Flag']}\n")
+                    print(f"❌ {row['Event_Number']}: → Value present in columns: {row['Flag']}")
+                    # Additional print line
+                    print(f"    Please check the above columns are empty when Defensive_Skill is 'Raider self out'.\n")
             else:
                 print("QC 21: ✅ All rows are correct.\n")
+
 
 
 
