@@ -797,12 +797,12 @@ if uploaded_file:
                             print(
                                 f"❌ Event_Number {row['Event_Number']} is Empty, but the row with Event_Number "
                                 f"{prev_row['Event_Number']} has Raid_Number={prev_row['Raid_Number']} "
-                                f"and Outcome='{prev_row['Outcome']}', which violates the rule."
+                                f"and Outcome='{prev_row['Outcome']}', which violates the rule.\n"
                             )
                             errors_found = True
 
             if not errors_found:
-                print("QC 7: ✅ All rows are correct.")
+                print("QC 7: ✅ All rows are correct.\n")
 
 
             # QC 8: Attacking & Defensive Points match
@@ -1136,3 +1136,4 @@ if uploaded_file:
             sys.stdout = sys.__stdout__
             st.error(f"❌ An error occurred: {e}")
     
+
