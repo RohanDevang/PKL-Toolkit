@@ -740,8 +740,8 @@ if uploaded_file:
                     target_idx = idx + 2
                     if target_idx < len(df) and df.loc[target_idx, 'Raid_Number'] != 2:
                         print(
-                            f"❌ {df.loc[target_idx, 'Event_Number']}: → Raid_Number must be = 2"
-                            f"(Because {row['Event_Number']} == 1)\n"
+                            f"❌ {df.loc[target_idx, 'Event_Number']}: → Raid_Number must be = 2   "
+                            f"(Because {row['Event_Number']} Raid_Number is 1)\n"
                         )
                         error_found = True
 
@@ -1134,6 +1134,7 @@ if uploaded_file:
             sys.stdout = sys.__stdout__
             st.error(f"❌ An error occurred: {e}")
     
+
 
 
 
