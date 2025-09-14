@@ -711,20 +711,25 @@ if uploaded_file:
 
             # QC 4: If Raid_Number = 3 then row at index -2 must have Outcome == 'Empty'
             error_found = False
-
+            
             for idx, row in df.iterrows():
                 if row['Raid_Number'] == 3:
                     target_idx = idx - 2
                     # Only check if index - 2 exists
                     if target_idx >= 0:
                         if df.loc[target_idx, 'Outcome'] != 'Empty':
-                            print(f"❌ {row['Event_Number']}: Row at index {target_idx} must have Outcome == 'Empty'\n")
+                            print(
+                                f"❌ {df.loc[target_idx, 'Event_Number']}: → Outcome must be 'Empty' "
+                                f"(Because {row['Event_Number']} has Raid_Number = 3)\n"
+                            )
                             error_found = True
                     # If target_idx < 0, just skip silently
-
+            
             # Final message
             if not error_found:
                 print("QC 4: ✅ All rows are Valid.\n")
+
+                    # If target_idx < 0, just skip silently
 
     
             # QC 5: If Raid_Number = 1 & Outcome = 'Empty', then row at index +2 must have Raid_Number = 2
@@ -781,9 +786,8 @@ if uploaded_file:
                 print("QC 6: ✅ All rows are Valid.\n")
 
 
-
-
             # QC 7: if Raid_Number = 2 & Outcome = 'Empty', then row at index -2 must have Raid_Number = 1 & Outcome = 'Empty'
+            
             errors_found = False
 
             for idx, row in df.iterrows():
@@ -1130,6 +1134,7 @@ if uploaded_file:
             sys.stdout = sys.__stdout__
             st.error(f"❌ An error occurred: {e}")
     
+
 
 
 
