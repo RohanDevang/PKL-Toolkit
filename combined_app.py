@@ -1120,12 +1120,14 @@ if uploaded_file:
             """,
             unsafe_allow_html=True)
 
+            clean_match_id = match_id.lstrip("M")
+
             # Download button
             with open(output_file_name, "rb") as f:
                 st.download_button(
                     label="Download Processed CSV",
                     data=f,
-                    file_name=f"tagged_{str(match_id)}.csv",
+                    file_name=f"tagged_{match_no}_{clean_match_id}.csv",
                     mime="text/csv",
                     use_container_width=True
                 )
@@ -1133,9 +1135,5 @@ if uploaded_file:
         except Exception as e:
             sys.stdout = sys.__stdout__
             st.error(f"❌ An error occurred: {e}")
-    
-
-
-
 
 
