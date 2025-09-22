@@ -1073,6 +1073,35 @@ if uploaded_file:
                 print("QC 21: ✅ All rows are correct.\n")
 
 
+            # --- QC 22: When Outcome = 'Successful', Bonus = 'Yes', and Raiding_Team_Points = 1, all skill columns must be empty. ---
+
+            # Define the columns to check
+            columns_to_check = ['Attacking_Skill', 'Defensive_Skill', 'QoD_Skill', 'Counter_Action_Skill']
+
+            # Filter the DataFrame based on the given conditions
+            filtered_df = df[
+                (df['Outcome'] == 'Successful') &
+                (df['Bonus'] == 'Yes') &
+                (df['Raiding_Team_Points'] == 1)
+            ]
+
+            # QC check
+            issues_found = False
+
+            for idx, row in filtered_df.iterrows():
+                for col in columns_to_check:
+                    # Treat empty strings as NaN
+                    if not pd.Series([row[col]]).replace('', pd.NA).isna().iloc[0]:
+                        print(
+                            f"❌ {row['Event_Number']}: When Outcome='Successful', Bonus='Yes', and Raiding_Team_Points=1, "
+                            f"all skill must be empty. But '{col}' has value '{row[col]}'.\n")
+                        issues_found = True
+
+            # Final message
+            if not issues_found:
+                print("QC 22: ✅ All rows are correct.\n")
+
+            
 # =========================================================================
 
             # Example: saving final processed dataframe
@@ -1137,6 +1166,7 @@ if uploaded_file:
         except Exception as e:
             sys.stdout = sys.__stdout__
             st.error(f"❌ An error occurred: {e}")
+
 
 
 
