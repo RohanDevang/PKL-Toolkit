@@ -798,11 +798,8 @@ if uploaded_file:
                         # Check if either condition fails
                         if prev_row['Raid_Number'] != 1 or prev_row['Outcome'] != 'Empty':
                             # Printing with a comment style output
-                            print(
-                                f"❌ Event_Number {row['Event_Number']} is Empty, but "
-                                f"{prev_row['Event_Number']} has Raid_Number={prev_row['Raid_Number']} "
-                                f"and Outcome='{prev_row['Outcome']}', Please Check!\n"
-                            )
+                            print(f"❌ {row['Event_Number']} is Empty, but {prev_row['Event_Number']} has Raid_Number={prev_row['Raid_Number']} "
+                                f"and Outcome='{prev_row['Outcome']}', Please Check!\n")
                             errors_found = True
 
             if not errors_found:
@@ -1166,6 +1163,7 @@ if uploaded_file:
         except Exception as e:
             sys.stdout = sys.__stdout__
             st.error(f"❌ An error occurred: {e}")
+
 
 
 
