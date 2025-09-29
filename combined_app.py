@@ -3,7 +3,6 @@ import pandas as pd
 import io
 import sys
 
-
 # ---------------------------
 # Streamlit UI
 # ---------------------------
@@ -798,8 +797,11 @@ if uploaded_file:
                         # Check if either condition fails
                         if prev_row['Raid_Number'] != 1 or prev_row['Outcome'] != 'Empty':
                             # Printing with a comment style output
-                            print(f"❌ {row['Event_Number']} is Empty, but {prev_row['Event_Number']} has Raid_Number={prev_row['Raid_Number']} "
-                                f"and Outcome='{prev_row['Outcome']}', Please Check!\n")
+                            print(
+                                f"❌ Event_Number {row['Event_Number']} is Empty, but the row with Event_Number "
+                                f"{prev_row['Event_Number']} has Raid_Number={prev_row['Raid_Number']} "
+                                f"and Outcome='{prev_row['Outcome']}', which violates the rule.\n"
+                            )
                             errors_found = True
 
             if not errors_found:
@@ -907,17 +909,37 @@ if uploaded_file:
                 (df['Bonus'] == 'No') &
                 (df['Number_of_Defenders_Self_Out'] == 0)
             ].copy()
+
+            # Replace empty strings with NA
             for col in ['Attacking_Skill', 'Defensive_Skill', 'Counter_Action_Skill']:
                 fil_df[col] = fil_df[col].replace('', pd.NA)
+
+            # Existing conditions
             cond1 = (fil_df['Attacking_Skill'].isna() &
                     (fil_df['Defensive_Skill'].isna() | fil_df['Counter_Action_Skill'].isna()))
             cond2 = (fil_df['Attacking_Skill'].notna() &
                     (fil_df['Defensive_Skill'].notna() | fil_df['Counter_Action_Skill'].notna()))
+
+            # New condition: all three skills empty
+            cond_all_empty = (fil_df['Attacking_Skill'].isna() &
+                            fil_df['Defensive_Skill'].isna() &
+                            fil_df['Counter_Action_Skill'].isna())
+
+            # Combine conditions for QC check
             qc_wrong_rows = fil_df.loc[cond1 | cond2, 'Event_Number']
+
             if not qc_wrong_rows.empty:
                 for event in qc_wrong_rows:
                     print(f"⚠️ {event}: 'Attacking_Skill' & 'Defensive & Counter_Action_Skill' - all 3 Present Check once.\n")
-            else:
+
+            # Check for all three empty separately
+            all_empty_rows = fil_df.loc[cond_all_empty, 'Event_Number']
+            if not all_empty_rows.empty:
+                for event in all_empty_rows:
+                    print(f"❌ {event}: All three skill columns are empty. Please check.\n")
+
+            # If neither issue exists
+            if qc_wrong_rows.empty and all_empty_rows.empty:
                 print("QC 14: ✅ All rows are correct.\n")
 
             
@@ -1068,7 +1090,7 @@ if uploaded_file:
                     print(f" Mentioned Columns is/are Empty when Defensive_Skill is 'Raider self out'.\n")
             else:
                 print("QC 21: ✅ All rows are correct.\n")
-
+                
 
             # --- QC 22: When Outcome = 'Successful', Bonus = 'Yes', and Raiding_Team_Points = 1, all skill columns must be empty. ---
 
@@ -1079,8 +1101,7 @@ if uploaded_file:
             filtered_df = df[
                 (df['Outcome'] == 'Successful') &
                 (df['Bonus'] == 'Yes') &
-                (df['Raiding_Team_Points'] == 1)
-            ]
+                (df['Raiding_Team_Points'] == 1)]
 
             # QC check
             issues_found = False
@@ -1091,14 +1112,36 @@ if uploaded_file:
                     if not pd.Series([row[col]]).replace('', pd.NA).isna().iloc[0]:
                         print(
                             f"❌ {row['Event_Number']}: When Outcome='Successful', Bonus='Yes', and Raiding_Team_Points=1, "
-                            f"all skill must be empty. But '{col}' has value '{row[col]}'.\n")
+                            f"all skill columns must be empty. But '{col}' has value '{row[col]}'.\n")
                         issues_found = True
 
             # Final message
             if not issues_found:
                 print("QC 22: ✅ All rows are correct.\n")
 
-            
+
+            # --- QC 23: Global Defensive_Skill & QoD_Skill Alignment ---
+
+            # A value is considered "present" if the cell is not null, empty, or just whitespace.
+            is_def_skill_present = df["Defensive_Skill"].fillna("").str.strip() != ""
+            is_qod_skill_present = df["QoD_Skill"].fillna("").str.strip() != ""
+
+            # Type 1: Defensive_Skill is present, but QoD_Skill is missing.
+            qc_19_1 = df[is_def_skill_present & ~is_qod_skill_present]
+
+            # Type 2: QoD_Skill is present, but Defensive_Skill is missing.
+            qc_19_2 = df[is_qod_skill_present & ~is_def_skill_present]
+
+            # --- Final Check & Reporting ---
+            if qc_19_1.empty and qc_19_2.empty:
+                print("QC 23: ✅ Defensive_Skill and QoD_Skill are aligned correctly.\n")
+            else:
+                if not qc_19_1.empty:
+                    print(f"❌ [Type 1]: {qc_19_1['Event_Number'].tolist()} → Defensive_Skill present but QoD_Skill missing.\n")
+                if not qc_19_2.empty:
+                    print(f"❌ [Type 2]: {qc_19_2['Event_Number'].tolist()} → QoD_Skill present but Defensive_Skill missing.\n")
+
+
 # =========================================================================
 
             # Example: saving final processed dataframe
@@ -1147,7 +1190,7 @@ if uploaded_file:
             unsafe_allow_html=True)
 
             clean_match_id = match_id.lstrip("M")
-
+            
             st.write(f"**File Name:** `tagged_{match_no}_{clean_match_id}.csv`")
 
             # Download button
@@ -1163,9 +1206,4 @@ if uploaded_file:
         except Exception as e:
             sys.stdout = sys.__stdout__
             st.error(f"❌ An error occurred: {e}")
-
-
-
-
-
 
