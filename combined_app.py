@@ -1125,21 +1125,19 @@ if uploaded_file:
             # A value is considered "present" if the cell is not null, empty, or just whitespace.
             is_def_skill_present = df["Defensive_Skill"].fillna("").str.strip() != ""
             is_qod_skill_present = df["QoD_Skill"].fillna("").str.strip() != ""
-
-            # Type 1: Defensive_Skill is present, but QoD_Skill is missing.
-            qc_19_1 = df[is_def_skill_present & ~is_qod_skill_present]
-
-            # Type 2: QoD_Skill is present, but Defensive_Skill is missing.
+            
+            # Type 1: QoD_Skill is present, but Defensive_Skill is missing.
             qc_19_2 = df[is_qod_skill_present & ~is_def_skill_present]
-
+            
+            # --- Remove Type 1 errors ---
+            df_cleaned = df[~(is_def_skill_present & ~is_qod_skill_present)]
+            
             # --- Final Check & Reporting ---
-            if qc_19_1.empty and qc_19_2.empty:
+            if qc_19_2.empty:
                 print("QC 23: ✅ Defensive_Skill and QoD_Skill are aligned correctly.\n")
             else:
-                if not qc_19_1.empty:
-                    print(f"❌ [Type 1]: {qc_19_1['Event_Number'].tolist()} → Defensive_Skill present but QoD_Skill missing.\n")
-                if not qc_19_2.empty:
-                    print(f"❌ [Type 2]: {qc_19_2['Event_Number'].tolist()} → QoD_Skill present but Defensive_Skill missing.\n")
+                print(f"❌ {qc_19_2['Event_Number'].tolist()} → QoD_Skill present but Defensive_Skill missing.\n")
+
 
 
 # =========================================================================
@@ -1206,4 +1204,5 @@ if uploaded_file:
         except Exception as e:
             sys.stdout = sys.__stdout__
             st.error(f"❌ An error occurred: {e}")
+
 
