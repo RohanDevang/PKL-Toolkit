@@ -1075,7 +1075,7 @@ if uploaded_file:
                 for idx, row in flagged.iterrows():
                     # Identify which of the 4 columns have values
                     non_empty_cols = [col for col in columns_to_check if pd.notna(row[col]) and row[col] != '']
-                    print(f"❌ {row['Event_Number']}: Found values in {', '.join(non_empty_cols)} — these must be empty when Defensive_Skill = 'Raider self out'.")
+                    print(f"❌ {row['Event_Number']}: Found values in {', '.join(non_empty_cols)} — these must be empty when Defensive_Skill = 'Raider self out'.\n")
 
             else:
                 print("QC 20: ✅ All rows are correct.\n")
@@ -1200,5 +1200,6 @@ if uploaded_file:
         except Exception as e:
             sys.stdout = sys.__stdout__
             st.error(f"❌ An error occurred: {e}")
+
 
 
