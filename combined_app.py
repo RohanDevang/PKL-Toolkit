@@ -936,34 +936,29 @@ if uploaded_file:
 
             # QC 15: Outcome = Successful & Bonus = No -> Defensive_Skill & Counter_Action_Skill both must NOT be empty or both must be empty
 
-
-            # Helper function
+            # Helper function (must be defined)
             def is_empty(cell):
                 return pd.isna(cell) or str(cell).strip() == ''
-
-            # Unified QC function
-            def qc_defensive_vs_counter(df, check_raiding_points=False):
-           
-                # Base filter
-                mask = (df['Outcome'] == 'Successful') & (df['Bonus'] == 'No')
-
-                # Add Raiding_Touch_Points condition if required
-                if check_raiding_points:
-                    mask &= (df['Raiding_Touch_Points'] > 0)
-
-                filtered = df[mask]
-
-                # Find violations where one column is empty but not the other
-                violations = filtered[
-                    (filtered['Defensive_Skill'].apply(is_empty) & ~filtered['Counter_Action_Skill'].apply(is_empty)) |
-                    (~filtered['Defensive_Skill'].apply(is_empty) & filtered['Counter_Action_Skill'].apply(is_empty))]
-
-                # Print results
-                if not violations.empty:
-                    for idx, row in violations.iterrows():
-                        print(f"❌ {row['Event_Number']}: 'Defensive_Skill' or 'Counter_Action_Skill' missing.\n")
-                else:
-                    print(f"QC 15: ✅ All rows are correct.\n")
+            
+            # Base filter
+            mask = (df['Outcome'] == 'Successful') & (df['Bonus'] == 'No')
+            
+            # ADDED: Mandatory inclusion of the Raiding_Touch_Points condition
+            mask &= (df['Raiding_Touch_Points'] > 0)
+            
+            filtered = df[mask]
+            
+            # Find violations where one column is empty but not the other
+            violations = filtered[
+                (filtered['Defensive_Skill'].apply(is_empty) & ~filtered['Counter_Action_Skill'].apply(is_empty)) |
+                (~filtered['Defensive_Skill'].apply(is_empty) & filtered['Counter_Action_Skill'].apply(is_empty))]
+            
+            # Print results
+            if not violations.empty:
+                for idx, row in violations.iterrows():
+                    print(f"❌ {row['Event_Number']}: 'Defensive_Skill' or 'Counter_Action_Skill' missing.\n")
+            else:
+                print(f"QC 15: ✅ All rows are correct.\n")
 
 
             # --- QC 16: Defender without Position & Position with Defenders---
@@ -1200,6 +1195,7 @@ if uploaded_file:
         except Exception as e:
             sys.stdout = sys.__stdout__
             st.error(f"❌ An error occurred: {e}")
+
 
 
 
